@@ -36,20 +36,34 @@ const prog_char HTTP_connectWS[] PROGMEM = {
 			"Origin: ArduinoWebSocketClient\r\n"
 			"\r\n" };
 
-const prog_char HTTP_WSSubscribe[] PROGMEM 	= {
-			"%d{\"event\": \"pusher:subscribe\""
-			", \"data\": {\"channel\": \"channel_1\" } }%d" };
-
-const prog_char HTTP_WSEvent[] PROGMEM 	= {
-			"%d{\"event\": \"%s\", \"data\": {%s} }%d" };
-
 
 /**********************************************************
 
 **********************************************************/
 void recv_data(byte chr) {
 
-	Serial.write(chr);
+	switch(chr) {
+		case ' ': case '\r': case '\n':
+			break;
+
+
+	}
+
+	Serial.println(chr);
+}
+
+/**********************************************************
+
+**********************************************************/
+void ws_event( const prog_char *fmt, ... ) {
+	va_list  args;
+
+	va_start(args, fmt);
+	gsm.TCP_Send(PSTR("%d{\"event\": \"%p\", \"data\": {%p} }%d"),
+					0,
+					fmt, args,
+					255 );
+	va_end(args);
 }
 
 /**********************************************************
@@ -68,7 +82,8 @@ void connect_ws() {
 				PSTR("ws.pusherapp.com"));
 
 		// subscribe a channel
-		gsm.TCP_Send(HTTP_WSSubscribe, 0, 255);
+		//gsm.TCP_Send(HTTP_WSSubscribe, 0, 255);
+		ws_event(PSTR("pusher:subscribe"), PSTR("\"channel\": \"channel_1\" "));
 	}
 }
 
