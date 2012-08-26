@@ -36,20 +36,19 @@ const prog_char HTTP_connectWS[] PROGMEM = {
 			"Origin: ArduinoWebSocketClient\r\n"
 			"\r\n" };
 
+// Carefuly. This variable is used for searching event and ... trigger event
+const prog_char HTTP_WSEvent[] PROGMEM = {
+			"%d{\"event\":\"%p\",\"data\":{%p}}%d" };
+
+#define _searchStartIndex 	2 // start searching from {
+#define _searchLength 		10 // end at ..\":\"
 
 /**********************************************************
 
 **********************************************************/
+
 void recv_data(byte chr) {
 
-	switch(chr) {
-		case ' ': case '\r': case '\n':
-			break;
-
-
-	}
-
-	Serial.println(chr);
 }
 
 /**********************************************************
@@ -59,10 +58,7 @@ void ws_event( const prog_char *fmt, ... ) {
 	va_list  args;
 
 	va_start(args, fmt);
-	gsm.TCP_Send(PSTR("%d{\"event\": \"%p\", \"data\": {%p} }%d"),
-					0,
-					fmt, args,
-					255 );
+	gsm.TCP_Send(HTTP_WSEvent, 0, fmt, args, 255 );
 	va_end(args);
 }
 
