@@ -7,6 +7,8 @@
 /*
  *  DOCS:
  *  http://imall.iteadstudio.com/im120417009.html
+ *
+ *  minicom -c on -D /dev/ttyACM0
  */
 
 #include <main.h>
@@ -63,6 +65,7 @@ inline void setup() {
 }
 
 void connect_ws() {
+
 	gsm.TCP_Connect();
 
 	if (CONNECT_OK == gsm.getState()) {
@@ -78,16 +81,32 @@ void connect_ws() {
 
 inline void loop() {
 
-	static unsigned long prev_time;
+	static unsigned long last_fetch_time;
 
-	if ((unsigned long)(millis() - prev_time) >= 10000) {
+	mySerial.flush();
+
+	if ((unsigned long)(millis() - last_fetch_time) >= 10000) {
 		gsm.fetchState();
-		prev_time = millis();
+		last_fetch_time = millis();
 	}
 
-	switch(gsm.getState()){
+	switch(gsm.getState()) {
 	case CONNECT_OK:
 	case TCP_CONNECTING:
+
+		/*
+		// FIXIT: has been received at fetchState()
+		if (gsm.IsStringReceived("+CIPRXGET:1\r\n")) {
+			// GPRS data present
+			gsm.ReceiveGprsData();
+		}
+
+		if ( RX_FINISHED_STR_RECV == gsm.WaitResp(500, 50, "+CIPRXGET:1\r\n")) {
+			gsm.ReceiveGprsData();
+		}*/
+
+		gsm.ReceiveGprsData();
+		delay(500);
 		break;
 
 	case TCP_CLOSED:

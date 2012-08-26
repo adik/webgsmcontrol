@@ -7,7 +7,6 @@
 #include <Arduino.h>
 #include <SoftwareSerial.h>
 #include "GSM_Shield.h"
-#include "GSM_Shield_GPRS.h"
 
 extern "C" {
   #include <string.h>
@@ -22,70 +21,31 @@ ring_buffer rx_buffer_gsm = { { 0 }, 0, 0};
 //SoftwareSerial mySerial =  SoftwareSerial(rxPin, txPin);
 SoftwareSerial mySerial(&rx_buffer_gsm, 2, 3);  //rx, tx
 
-
 /*
-void GSM::gsmRecvCallback(uint8_t d, ring_buffer *& _rx_buffer) {
+void GSM::mySerialRecvByteCallback(uint8_t d, ring_buffer *& _rx_buffer) {
 
-	static const char		search[]  = "+IPD,";
+	static const char		search[]  = "+CIPRXGET:1";
 	static const uint8_t	searchLen = strlen(search);
 	static uint8_t 			index = 0;
-	static byte 			find_search = 0;
-	static char				buffsize[4+1];
 
-
-	switch(pt2GSM->GetCommLineStatus()) {
-	case CLS_DATA:
-		if (--gprs_data_len == 0) {
-			pt2GSM->SetCommLineStatus(CLS_FREE);
+	if (d == search[index]) {
+		if (++index >= searchLen) {
+			//next bytes is the size of data
+			index = 0;
 		}
-		break;
+	} else {
+		index = 0;
+	}
 
-	default:
-		if (find_search == 1) {
-			if ((d >= '0') && (d <= '9') && (index < 4)) {
-				buffsize[index++] = d;
-			}
-			else {
-				buffsize[index] = '\0';
-				// handle WaitResp
-				d = '\0';
-				// set gprs handler
-				//mySerial.setRecvCallback(GPRS::gsmRecvCallbackGPRS);
-				pt2GSM->SetCommLineStatus(CLS_DATA);
-				// set flag
-				find_search = 0;
-				//
-				gprs_data_len = atoi(buffsize);
-			}
-		}
-		else {
-			if( d == search[index] ){
-				if(++index >= searchLen) {
-					//next bytes is the size of data
-					find_search = 1;
-					index = 0;
-				}
-			}
-			else {
-				index = 0;
-			}
-		};
-
-		// if buffer full, set the overflow flag and return
-		if ((_rx_buffer->tail + 1) % _SS_MAX_RX_BUFF != _rx_buffer->head)
-		{
-		  // save new data in buffer: tail points to where byte goes
-			_rx_buffer->buffer[_rx_buffer->tail] = d; // save new byte
-			_rx_buffer->tail = (_rx_buffer->tail + 1) % _SS_MAX_RX_BUFF;
-		}
-		//else { 	buffer overflow  }
-
-
-		break;
-	};
-
-
-}*/
+	// if buffer full, set the overflow flag and return
+	if ((_rx_buffer->tail + 1) % _SS_MAX_RX_BUFF != _rx_buffer->head) {
+		// save new data in buffer: tail points to where byte goes
+		_rx_buffer->buffer[_rx_buffer->tail] = d; // save new byte
+		_rx_buffer->tail = (_rx_buffer->tail + 1) % _SS_MAX_RX_BUFF;
+	}
+	//else { 	buffer overflow  }
+}
+*/
 
 /**********************************************************
 	DEBUG
@@ -256,7 +216,7 @@ void GSM::RxInit(uint16_t start_comm_tmout, uint16_t max_interchar_tmout)
   p_comm_buf = &comm_buf[0];
   comm_buf_len = 0;
   st = 0;
-  mySerial.flush(); // erase rx circular buffer
+//  mySerial.flush(); // erase rx circular buffer
 }
 
 /**********************************************************
@@ -357,9 +317,10 @@ byte GSM::IsRxFinished(void)
 
 finish:
 
+
 #ifdef DEBUG_GSMRX
 	if (ret_val == RX_FINISHED){
-		DebugPrint(F("DEBUG: Received string\r\n"), 0);
+		DebugPrint(F("\r\nDEBUG: Received string\r\n"), 0);
 		for (int i=0; i<comm_buf_len; i++){
 			Serial.write(byte(comm_buf[i]));
 		}
@@ -462,11 +423,7 @@ byte GSM::WaitResp(uint16_t start_comm_tmout, uint16_t max_interchar_tmout,
   byte status;
   byte ret_val;
 
-  RxInit(start_comm_tmout, max_interchar_tmout); 
-  // wait until response is not finished
-  do {
-    status = IsRxFinished();
-  } while (status == RX_NOT_FINISHED);
+  status = WaitResp(start_comm_tmout, max_interchar_tmout);
 
   if (status == RX_FINISHED) {
     // something was received but what was received?

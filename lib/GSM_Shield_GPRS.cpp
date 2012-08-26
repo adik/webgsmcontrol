@@ -20,7 +20,7 @@ GPRS::GPRS(void) : GSM(), gprs_state(PDP_DEACT) { }
 /**********************************************************
 
 **********************************************************/
-void GPRS::WaitGprsData() {
+void GPRS::ReceiveGprsData() {
 
 	unsigned long 	prev_time;
 	int 			c = 0;
@@ -32,34 +32,24 @@ void GPRS::WaitGprsData() {
 
 	enum req_state_enum
 	{
-		SEND_REQ_HEADER = 0,
+		SEND_PULL_HEADER = 0,
 		REQ_HEADER_PARSE,
 		GET_DATA
 	} req_state;
 
-	// waiting for receive +CIPRXGET:1
-	prev_time = millis();
-	do {
-		// break if timeout
-		if (millis() - prev_time > 60000) return;
-		state = WaitResp(1000, 1000, "T:1");
-
-	} while
-		(state != RX_FINISHED_STR_RECV);
-
 	// init start variables
-	req_state = SEND_REQ_HEADER;
+	req_state = SEND_PULL_HEADER;
 	prev_time = millis();
 
 	while (1) {
 
 		// break if timeout
-		if (millis() - prev_time > 60000) {
+		if (millis() - prev_time > 1000) {
 			return;
 		}
 
 		// receive nn bytes of data
-		if (req_state == SEND_REQ_HEADER) {
+		if (req_state == SEND_PULL_HEADER) {
 			mySerial.flush();
 			vprintf_P(mySerial, PSTR("AT+CIPRXGET=2,220")); // TODO: calculate buffer size
 			mySerial.write('\r');
@@ -74,17 +64,17 @@ void GPRS::WaitGprsData() {
 
 		//
 		c = mySerial.read();
-		if (c <= 0) continue;
+		if (c < 0) continue;
+		Serial.write(c);
 
 		// if there are some received bytes postpone the timeout
 		prev_time = millis();
-		read_byte_count++;
 
 		// process states
 		switch(req_state) {
 		case REQ_HEADER_PARSE:
 			//\r\n+CIPRXGET:2,255,52
-			if ( read_byte_count > 14 ) {
+			if ( ++read_byte_count > 14 ) {
 				if (c == '\n') {
 					/*#ifdef DEBUG_PRINT
 					DebugPrint(F("read_byte_count:"), 0);
@@ -109,21 +99,25 @@ void GPRS::WaitGprsData() {
 
 		//
 		case GET_DATA:
-			// handle received
-			_onReceiveHandler(c);
-
 			if (read_byte_count == recv_data_size) {
 				// going to new iteration because we haven't read all
 				if ((left_data_size > 0)) {
-					req_state = SEND_REQ_HEADER;
+					req_state = SEND_PULL_HEADER;
 				}
 				// end receiving data
 				else {
+					mySerial.flush();
 					return;
 				}
 			}
+
+			// handle received
+			_onReceiveHandler(c);
+			++read_byte_count;
+
 			break;
 		}
+
 	}//end while
 }
 
@@ -196,7 +190,10 @@ void GPRS::TCP_Connect() {
 
 
 void GPRS::TCP_Send(const prog_char *data, ... ) {
-	va_list   args;
+
+	va_list   		args;
+	byte	  		state;
+	unsigned long 	prev_time;
 
 	/* This Command is used to send changeable length data
 	 * If single IP is connected (+CIPMUX=0)
@@ -204,13 +201,27 @@ void GPRS::TCP_Send(const prog_char *data, ... ) {
 	 * If sending is successful:  When +CIPQSEND=0 = "SEND OK"  When +CIPQSEND=1  "DATA ACCEPT:<length>"
 	 * If sending fails: "SEND FAIL"
 	 */
+
+	// FIXIT:
+	mySerial.flush();
+
 	if (AT_RESP_OK == SendATCmdWaitResp(2000, 100, ">", 1, PSTR("AT+CIPSEND")))
 	{
 		va_start(args, data);
 		vprintf_P(mySerial, data, args); mySerial.write('\x1A');
 		va_end(args);
 
-		WaitGprsData();
+		// waiting for receive +CIPRXGET:1
+		prev_time = millis();
+		do {
+			// break if timeout
+			if (millis() - prev_time > 6000) return;
+			state = WaitResp(1000, 1000, "+CIPRXGET:1\r\n");
+
+		} while
+			(state != RX_FINISHED_STR_RECV);
+
+		ReceiveGprsData();
 	}
 }
 

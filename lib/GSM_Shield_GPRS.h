@@ -39,7 +39,7 @@ public:
 
 	void setRecvHandler( EventHandler handler ) {  _onReceiveHandler = handler; };
 
-	void WaitGprsData();
+	void ReceiveGprsData();
 
 	void GPRS_Context2Nvram();
 
