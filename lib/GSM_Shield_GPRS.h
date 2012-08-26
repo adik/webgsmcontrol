@@ -5,8 +5,8 @@
  *      Author: adik
  */
 
-#ifndef GSM_SHIELD_GPRS_H_
-#define GSM_SHIELD_GPRS_H_
+#ifndef __GSM_Shield_GPRS
+#define __GSM_Shield_GPRS
 
 #include <GSM_Shield.h>
 
@@ -43,7 +43,9 @@ public:
 
 	void GPRS_Context2Nvram();
 
-	void TCP_Connect();
+	void TCP_Connect(const char *);
+	void TCP_Connect(__FlashStringHelper *);
+
 	void TCP_Send(const prog_char *data, ...);
 	void TCP_Close();
 
@@ -57,4 +59,4 @@ public:
 
 
 
-#endif /* GSM_SHIELD_GPRS_H_ */
+#endif /* __GSM_Shield_GPRS */

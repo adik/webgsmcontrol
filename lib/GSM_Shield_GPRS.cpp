@@ -65,7 +65,7 @@ void GPRS::ReceiveGprsData() {
 		//
 		c = mySerial.read();
 		if (c < 0) continue;
-		Serial.write(c);
+		//Serial.write(c);
 
 		// if there are some received bytes postpone the timeout
 		prev_time = millis();
@@ -99,14 +99,14 @@ void GPRS::ReceiveGprsData() {
 
 		//
 		case GET_DATA:
-			if (read_byte_count == recv_data_size) {
+			if (read_byte_count >= recv_data_size) {
 				// going to new iteration because we haven't read all
 				if ((left_data_size > 0)) {
 					req_state = SEND_PULL_HEADER;
 				}
 				// end receiving data
 				else {
-					mySerial.flush();
+					SetCommLineStatus(CLS_FREE);
 					return;
 				}
 			}
@@ -126,6 +126,8 @@ void GPRS::ReceiveGprsData() {
 
 **********************************************************/
 void GPRS::fetchState() {
+
+	if (CLS_FREE != GetCommLineStatus()) return;
 
 	SetCommLineStatus(CLS_ATCMD);
 
@@ -170,7 +172,7 @@ void GPRS::GPRS_Context2Nvram() {
  * Start Up TCP Connection
  *
  */
-void GPRS::TCP_Connect() {
+void GPRS::TCP_Connect(const char *str) {
 	/*
 	 * This command allows establishment of a TCP/UDP connection only
 	 *   when the state is IP INITIAL or IP STATUS when it is in single state.
@@ -182,11 +184,19 @@ void GPRS::TCP_Connect() {
 	 *   is necessary to process "AT+CSTT, AT+CIICR, AT+CIFSR".
 	 */
 	if (AT_RESP_OK == SendATCmdWaitResp(1000, 5000, "T OK", 1,
-					PSTR("AT+CIPSTART=\"TCP\",\"ws.pusherapp.com\",\"80\""))) {
+					PSTR("AT+CIPSTART=\"TCP\",\"%s\",\"80\""), str)) {
 
 		setState(CONNECT_OK);
 	}
 }
+
+void GPRS::TCP_Connect(__FlashStringHelper *prog_str) {
+	char buf[32];
+
+	strcpy_P(buf, (const prog_char *)prog_str);
+	TCP_Connect(buf);
+}
+
 
 
 void GPRS::TCP_Send(const prog_char *data, ... ) {

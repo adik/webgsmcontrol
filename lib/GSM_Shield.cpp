@@ -19,19 +19,26 @@ extern "C" {
 ring_buffer rx_buffer_gsm = { { 0 }, 0, 0};
 
 //SoftwareSerial mySerial =  SoftwareSerial(rxPin, txPin);
-SoftwareSerial mySerial(&rx_buffer_gsm, 2, 3);  //rx, tx
+//SoftwareSerial mySerial(&rx_buffer_gsm, 2, 3);  //rx, tx
+SoftwareSerial mySerial(&rx_buffer_gsm, 2, 3, false, GSM::mySerialRecvByteCallback);  //rx, tx
 
-/*
+// a pointer to GSM object for using in statical functions
+GSM *pt2GSM;
+
+/**********************************************************
+
+**********************************************************/
 void GSM::mySerialRecvByteCallback(uint8_t d, ring_buffer *& _rx_buffer) {
 
 	static const char		search[]  = "+CIPRXGET:1";
-	static const uint8_t	searchLen = strlen(search);
+	static const uint8_t	searchLen = 11;
 	static uint8_t 			index = 0;
 
 	if (d == search[index]) {
 		if (++index >= searchLen) {
 			//next bytes is the size of data
 			index = 0;
+			pt2GSM->SetCommLineStatus(CLS_DATA);
 		}
 	} else {
 		index = 0;
@@ -45,7 +52,6 @@ void GSM::mySerialRecvByteCallback(uint8_t d, ring_buffer *& _rx_buffer) {
 	}
 	//else { 	buffer overflow  }
 }
-*/
 
 /**********************************************************
 	DEBUG
@@ -151,6 +157,8 @@ GSM::GSM(void)
 
   // initialization of speaker volume
   last_speaker_volume = 0; 
+
+  pt2GSM = this;
 }
 
 /**********************************************************
@@ -316,7 +324,6 @@ byte GSM::IsRxFinished(void)
   }
 
 finish:
-
 
 #ifdef DEBUG_GSMRX
 	if (ret_val == RX_FINISHED){
@@ -525,7 +532,7 @@ char GSM::SendATCmdWaitResp(uint16_t start_comm_tmout,
 	char 	ret_val = AT_RESP_ERR_NO_RESP;
 	byte 	i;
 
-	SetCommLineStatus(CLS_ATCMD);
+	//SetCommLineStatus(CLS_ATCMD);
 
 	for (i = 0; i < no_of_attempts; i++) {
 		// delay 500 msec. before sending next repeated AT command
@@ -555,7 +562,7 @@ char GSM::SendATCmdWaitResp(uint16_t start_comm_tmout,
 		}
 	}
 
-	SetCommLineStatus(CLS_FREE);
+	//SetCommLineStatus(CLS_FREE);
 	return (ret_val);
 }
 
@@ -579,7 +586,7 @@ char GSM::SendATCmdWaitResp(char const *AT_cmd_string,
   char ret_val = AT_RESP_ERR_NO_RESP;
   byte i;
 
-  SetCommLineStatus(CLS_ATCMD);
+  //SetCommLineStatus(CLS_ATCMD);
 
   for (i = 0; i < no_of_attempts; i++) {
     // delay 500 msec. before sending next repeated AT command 
@@ -605,7 +612,7 @@ char GSM::SendATCmdWaitResp(char const *AT_cmd_string,
     
   }
 
-  SetCommLineStatus(CLS_FREE);
+  //SetCommLineStatus(CLS_FREE);
   return (ret_val);
 }
 

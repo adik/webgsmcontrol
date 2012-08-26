@@ -10,7 +10,7 @@
 #include <SoftwareSerial.h>
 #include <Arduino.h>
 
-#define GSM_LIB_VERSION 102 // library version X.YY (e.g. 1.00)
+#define GSM_LIB_VERSION 202 // library version X.YY (e.g. 1.00)
 
 // if defined - debug print is enabled with possibility to print out 
 // debug texts to the terminal program
@@ -60,11 +60,7 @@
 #define STATUS_REGISTERED           2
 #define STATUS_USER_BUTTON_ENABLE   4
 
-
 extern SoftwareSerial mySerial;
-
-extern uint16_t gprs_data_len;
-
 
 // SMS type 
 // use by method IsSMSPresent()
@@ -96,7 +92,6 @@ enum rx_state_enum
                             // initial communication tmout occurred
   RX_LAST_ITEM
 };
-
 
 enum at_resp_enum 
 {
@@ -134,7 +129,6 @@ enum call_ret_val_enum
   CALL_LAST_ITEM
 };
 
-
 enum getsms_ret_val_enum
 {
   GETSMS_NO_SMS   = 0,
@@ -155,6 +149,8 @@ void gsmRecvCallback(uint8_t, ring_buffer *&);
 class GSM
 {
   public:
+	static void	 	mySerialRecvByteCallback(uint8_t d, ring_buffer *&);
+
     byte comm_buf[COMM_BUF_LEN+1];  // communication buffer +1 for 0x00 termination
 
     // library version
