@@ -114,7 +114,6 @@ void GPRS::ReceiveGprsData() {
 			// handle received
 			_onReceiveHandler(c);
 			++read_byte_count;
-
 			break;
 		}
 
@@ -129,9 +128,9 @@ void GPRS::fetchState() {
 
 	if (CLS_FREE != GetCommLineStatus()) return;
 
-	SetCommLineStatus(CLS_ATCMD);
+	//SetCommLineStatus(CLS_ATCMD);
 
-	vprintf_P(mySerial,	PSTR("AT+CIPSTATUS")); mySerial.print('\r');
+	vprintf_P(mySerial,	PSTR("AT+CIPSTATUS\r"));
 
 	// 5 sec. for initial comm tmout
 	// 50 msec. for inter character timeout
@@ -155,7 +154,7 @@ void GPRS::fetchState() {
 
 	}
 
-	SetCommLineStatus(CLS_FREE);
+	//SetCommLineStatus(CLS_FREE);
 }
 
 
@@ -168,10 +167,9 @@ void GPRS::GPRS_Context2Nvram() {
 }
 
 
-/*
- * Start Up TCP Connection
- *
- */
+/**********************************************************
+ Start Up TCP Connection
+**********************************************************/
 void GPRS::TCP_Connect(const char *str) {
 	/*
 	 * This command allows establishment of a TCP/UDP connection only
@@ -192,13 +190,14 @@ void GPRS::TCP_Connect(const char *str) {
 
 void GPRS::TCP_Connect(__FlashStringHelper *prog_str) {
 	char buf[32];
-
 	strcpy_P(buf, (const prog_char *)prog_str);
 	TCP_Connect(buf);
 }
 
 
-
+/**********************************************************
+ Send data
+**********************************************************/
 void GPRS::TCP_Send(const prog_char *data, ... ) {
 
 	va_list   		args;
@@ -226,17 +225,22 @@ void GPRS::TCP_Send(const prog_char *data, ... ) {
 		do {
 			// break if timeout
 			if (millis() - prev_time > 6000) return;
-			state = WaitResp(1000, 1000, "+CIPRXGET:1\r\n");
+			state = WaitResp(1000, 100, "+CIPRXGET:1\r\n");
 
 		} while
 			(state != RX_FINISHED_STR_RECV);
 
-		ReceiveGprsData();
+		// Get gprs data
+		if ( RX_FINISHED_STR_RECV == state ) {
+			ReceiveGprsData();
+		}
 	}
 }
 
 
-
+/**********************************************************
+ Close TCP connection
+**********************************************************/
 void GPRS::TCP_Close() {
 	/*
 	 * AT+CIPCLOSE only closes connection at the status of TCP/UDP which
@@ -249,11 +253,10 @@ void GPRS::TCP_Close() {
 }
 
 
-/* *********************************************
+/**********************************************************
  *  Start Task and Set APN
  *  Bring Up Wireless Connection with GPRS and Get Local IP Address
- *
- */
+ **********************************************************/
 void GPRS::GPRS_attach() {
 	byte status;
     byte no_of_attempts = 0;
@@ -287,14 +290,9 @@ void GPRS::GPRS_attach() {
 				setState(IP_BUSY);
 				goto finish;
 			}
-
-			SetCommLineStatus(CLS_ATCMD);
 			vprintf_P(mySerial, PSTR("AT+CIFSR"));mySerial.write('\r');
-			status = WaitResp(1000, 50);
-			SetCommLineStatus(CLS_FREE);
-
-			delay(1000);
-
+			status = WaitResp(1000, 200);
+			delay(500);
 		} while ((status != RX_FINISHED) || IsStringReceived("ERROR"));
 
 		setState(IP_STATUS);

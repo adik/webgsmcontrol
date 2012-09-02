@@ -1,15 +1,15 @@
 /*
  * Target: AVR328P
  * Crystal: 16.000Mhz
- */
-#include <Arduino.h>
 
-/*
  *  DOCS:
  *  http://imall.iteadstudio.com/im120417009.html
  *
  *  minicom -c on -D /dev/ttyACM0
+
  */
+#include <Arduino.h>
+
 
 #include <main.h>
 
@@ -17,8 +17,10 @@
 #include <GSM_Shield_GPRS.h>
 #include <GSM_Shield.h>
 
+#include "SimpleJsonParser.h"
 
-#ifdef DEBUG_ATCOMMANDS
+
+#ifdef DEBUG_PRINT
 char _serial_buffer[SERIAL_BUFF_SIZE+1];
 #endif
 
@@ -26,7 +28,6 @@ char _serial_buffer[SERIAL_BUFF_SIZE+1];
 //for enable disable debug rem or not the string #define DEBUG_PRINT
 // definition of instance of GSM class
 GPRS gsm;
-
 
 const prog_char HTTP_connectWS[] PROGMEM = {
 			"GET %p HTTP/1.1\r\n"
@@ -36,19 +37,39 @@ const prog_char HTTP_connectWS[] PROGMEM = {
 			"Origin: ArduinoWebSocketClient\r\n"
 			"\r\n" };
 
-// Carefuly. This variable is used for searching event and ... trigger event
 const prog_char HTTP_WSEvent[] PROGMEM = {
 			"%d{\"event\":\"%p\",\"data\":{%p}}%d" };
 
-#define _searchStartIndex 	2 // start searching from {
-#define _searchLength 		10 // end at ..\":\"
+
+json_parser_t json_parser = {};
 
 /**********************************************************
-
+ Receive GPRS data handler
 **********************************************************/
-
 void recv_data(byte chr) {
 
+	json_token_t 	*token;
+	size_t		 	size;
+	char 		 	*value;
+
+
+	Serial.write(chr);
+	// parse received json stream
+	if ( json_parse(&json_parser, chr) ) {
+		// get event
+		if ( (token = json_find_token(&json_parser, "event")) ) {
+			size = json_token_size(&json_parser, token);
+			if ((value = (char*) malloc(size))) {
+
+				Serial.print("Get token: ");
+				json_get_token(&json_parser, token, value, size);
+				Serial.write(value);
+				free(value);
+				json_clean_tokens(&json_parser);
+			}
+		}
+		json_clean_tokens(&json_parser);
+	}
 }
 
 /**********************************************************
@@ -56,7 +77,6 @@ void recv_data(byte chr) {
 **********************************************************/
 void ws_event( const prog_char *fmt, ... ) {
 	va_list  args;
-
 	va_start(args, fmt);
 	gsm.TCP_Send(HTTP_WSEvent, 0, fmt, args, 255 );
 	va_end(args);
@@ -79,7 +99,9 @@ void connect_ws() {
 
 		// subscribe a channel
 		//gsm.TCP_Send(HTTP_WSSubscribe, 0, 255);
-		ws_event(PSTR("pusher:subscribe"), PSTR("\"channel\": \"channel_1\" "));
+        gsm.TCP_Send(PSTR("%d{\"event\":\"%p\",\"data\":{%p}}%d"),
+        		0, PSTR("pusher:subscribe"), PSTR("\"channel\":\"channel_1\"") ,255) ;
+
 	}
 }
 
@@ -88,12 +110,15 @@ void connect_ws() {
 **********************************************************/
 inline void setup() {
 	// Setup GPRS connection
+#ifdef DEBUG_PRINT
 	Serial.begin(9600);
+#endif
 	//gsm.InitSerLine(9600); //initialize serial 1
 	gsm.TurnOn(9600); //module power on
 	//gsm.InitSerLine(9600); //initialize serial 1
 	gsm.InitParam(PARAM_SET_0); //configure the module
 	//
+	json_init(&json_parser);
 	gsm.setRecvHandler(recv_data);
 }
 
@@ -104,10 +129,10 @@ inline void loop() {
 
 	static unsigned long last_fetch_time;
 
-	// wash buffer
-	mySerial.flush();
 
 	if ((unsigned long)(millis() - last_fetch_time) >= 10000) {
+		// wash buffer
+		mySerial.flush();
 		gsm.fetchState();
 		last_fetch_time = millis();
 	}
@@ -136,7 +161,7 @@ inline void loop() {
 		break;
 	}
 
-	#ifdef DEBUG_ATCOMMANDS
+	#ifdef DEBUG_PRINT
 	// process serial commands
 	if (Serial.available())
 		onSerialReceive(_serial_buffer);
@@ -163,9 +188,8 @@ int main(void) {
  * echo -en "AT\r" > $TTYDEV
  *
  */
-#ifdef DEBUG_ATCOMMANDS
-//
-//
+#ifdef DEBUG_PRINT
+
 byte incomingByte;
 byte recv_byte = 0;
 
