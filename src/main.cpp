@@ -142,9 +142,10 @@ inline void loop() {
 		break;
 
 	case CONNECT_OK:
-		if ( CLS_DATA == gsm.GetCommLineStatus()) {
-			gsm.ReceiveGprsData();
-		};
+		//if ( CLS_DATA == gsm.GetCommLineStatus()) {
+		mySerial.flush();
+		gsm.ReceiveGprsData();
+		//};
 		break;
 
 	case TCP_CLOSED:

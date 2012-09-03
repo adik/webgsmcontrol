@@ -29,7 +29,7 @@ GSM *pt2GSM;
 
 **********************************************************/
 void GSM::mySerialRecvByteCallback(uint8_t d, ring_buffer *& _rx_buffer) {
-
+	/*
 	static const char		search[]  = "+CIPRXGET:1";
 	static const uint8_t	searchLen = 11;
 	static uint8_t 			index = 0;
@@ -43,6 +43,7 @@ void GSM::mySerialRecvByteCallback(uint8_t d, ring_buffer *& _rx_buffer) {
 	} else {
 		index = 0;
 	}
+	*/
 
 	// if buffer full, set the overflow flag and return
 	if ((_rx_buffer->tail + 1) % _SS_MAX_RX_BUFF != _rx_buffer->head) {
