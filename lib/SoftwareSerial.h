@@ -54,15 +54,9 @@ struct ring_buffer
   volatile int tail;
 };
 
-void _recvDefaultHandler(uint8_t, ring_buffer *&);
-
 class SoftwareSerial : public Stream
 {
 private:
-  // Calback handler
-  typedef void (*recvCallback)(uint8_t, ring_buffer *&) ;
-  recvCallback _recvCallbackHandler;
-
   // per object data
   uint8_t _receivePin;
   uint8_t _receiveBitMask;

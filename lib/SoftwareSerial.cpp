@@ -133,26 +133,6 @@ const int XMIT_START_ADJUSTMENT = 6;
 //
 SoftwareSerial *SoftwareSerial::active_object = 0;
 
-/*
- *  Default recv Handler
- */
-void _recvDefaultHandler(uint8_t d, ring_buffer *& _rx_buffer) {
-    // if buffer full, set the overflow flag and return
-    if ((_rx_buffer->tail + 1) % _SS_MAX_RX_BUFF != _rx_buffer->head)
-    {
-      // save new data in buffer: tail points to where byte goes
-    	_rx_buffer->buffer[_rx_buffer->tail] = d; // save new byte
-    	_rx_buffer->tail = (_rx_buffer->tail + 1) % _SS_MAX_RX_BUFF;
-    }
-    else
-    {
-#if _DEBUG // for scope: pulse pin as overflow indictator
-      DebugPulse(_DEBUG_PIN1, 1);
-#endif
-      //_buffer_overflow = true;
-    }
-}
-
 //
 // Debugging
 //
@@ -259,7 +239,20 @@ void SoftwareSerial::recv()
     if (_inverse_logic)
       d = ~d;
 
-    _recvCallbackHandler(d, _rx_buffer);
+     // if buffer full, set the overflow flag and return
+    if ((_rx_buffer->tail + 1) % _SS_MAX_RX_BUFF != _rx_buffer->head)
+    {
+      // save new data in buffer: tail points to where byte goes
+    	_rx_buffer->buffer[_rx_buffer->tail] = d; // save new byte
+    	_rx_buffer->tail = (_rx_buffer->tail + 1) % _SS_MAX_RX_BUFF;
+    }
+    else
+    {
+#if _DEBUG // for scope: pulse pin as overflow indictator
+        DebugPulse(_DEBUG_PIN1, 1);
+#endif
+        _buffer_overflow = true;
+    }
   }
 
 #if GCC_VERSION < 40302

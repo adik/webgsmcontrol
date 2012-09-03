@@ -20,39 +20,7 @@ ring_buffer rx_buffer_gsm = { { 0 }, 0, 0};
 
 //SoftwareSerial mySerial =  SoftwareSerial(rxPin, txPin);
 //SoftwareSerial mySerial(&rx_buffer_gsm, 2, 3);  //rx, tx
-SoftwareSerial mySerial(&rx_buffer_gsm, 2, 3, false, GSM::mySerialRecvByteCallback);  //rx, tx
-
-// a pointer to GSM object for using in statical functions
-GSM *pt2GSM;
-
-/**********************************************************
-
-**********************************************************/
-void GSM::mySerialRecvByteCallback(uint8_t d, ring_buffer *& _rx_buffer) {
-	/*
-	static const char		search[]  = "+CIPRXGET:1";
-	static const uint8_t	searchLen = 11;
-	static uint8_t 			index = 0;
-
-	if (d == search[index]) {
-		if (++index >= searchLen) {
-			//next bytes is the size of data
-			index = 0;
-			pt2GSM->SetCommLineStatus(CLS_DATA);
-		}
-	} else {
-		index = 0;
-	}
-	*/
-
-	// if buffer full, set the overflow flag and return
-	if ((_rx_buffer->tail + 1) % _SS_MAX_RX_BUFF != _rx_buffer->head) {
-		// save new data in buffer: tail points to where byte goes
-		_rx_buffer->buffer[_rx_buffer->tail] = d; // save new byte
-		_rx_buffer->tail = (_rx_buffer->tail + 1) % _SS_MAX_RX_BUFF;
-	}
-	//else { 	buffer overflow  }
-}
+SoftwareSerial mySerial(&rx_buffer_gsm, 2, 3);  //rx, tx
 
 /**********************************************************
 	DEBUG
@@ -157,7 +125,6 @@ GSM::GSM(void)
   // initialization of speaker volume
   last_speaker_volume = 0; 
 
-  pt2GSM = this;
 }
 
 /**********************************************************
