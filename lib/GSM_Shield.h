@@ -149,7 +149,7 @@ void gsmRecvCallback(uint8_t, ring_buffer *&);
 class GSM
 {
   public:
-	static void	 	mySerialRecvByteCallback(uint8_t d, ring_buffer *&);
+	static void mySerialRecvByteCallback(uint8_t d, ring_buffer *&);
 
     byte comm_buf[COMM_BUF_LEN+1];  // communication buffer +1 for 0x00 termination
 

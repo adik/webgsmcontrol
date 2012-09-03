@@ -328,8 +328,7 @@ ISR(PCINT3_vect)
 //
 // Constructor
 //
-SoftwareSerial::SoftwareSerial(ring_buffer *rx_buffer, uint8_t receivePin, uint8_t transmitPin,	bool inverse_logic /* = false */,
-		recvCallback _recvCallback /* =_recvDefaultHandler*/) :
+SoftwareSerial::SoftwareSerial(ring_buffer *rx_buffer, uint8_t receivePin, uint8_t transmitPin,	bool inverse_logic /* = false */) :
   _rx_delay_centering(0),
   _rx_delay_intrabit(0),
   _rx_delay_stopbit(0),
@@ -337,7 +336,6 @@ SoftwareSerial::SoftwareSerial(ring_buffer *rx_buffer, uint8_t receivePin, uint8
   _buffer_overflow(false),
   _inverse_logic(inverse_logic)
 {
-  _recvCallbackHandler = _recvCallback;
   _rx_buffer = rx_buffer;
   setTX(transmitPin);
   setRX(receivePin);

@@ -93,10 +93,8 @@ private:
 
 public:
   // public methods
-  SoftwareSerial(ring_buffer *rx_buffer, uint8_t receivePin, uint8_t transmitPin, bool inverse_logic = false,
-		  recvCallback _recvCallback = _recvDefaultHandler);
+  SoftwareSerial(ring_buffer *rx_buffer, uint8_t receivePin, uint8_t transmitPin, bool inverse_logic = false);
   ~SoftwareSerial();
-  void setRecvCallback(recvCallback _recvCallback) { _recvCallbackHandler = _recvCallback; };
   void begin(long speed);
   bool listen();
   void end();
