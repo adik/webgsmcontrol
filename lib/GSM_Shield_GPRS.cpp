@@ -24,7 +24,6 @@ void GPRS::ReceiveGprsData() {
 
 	unsigned long 	prev_time;
 	int 			c = 0;
-	byte			state;
 	byte			read_byte_count = 0;
 	uint16_t		recv_data_size = 0,
 					left_data_size = 0;
@@ -35,7 +34,10 @@ void GPRS::ReceiveGprsData() {
 		SEND_PULL_HEADER = 0,
 		REQ_HEADER_PARSE,
 		GET_DATA
-	} req_state;
+	};
+
+	static volatile byte req_state;
+
 
 	// init start variables
 	req_state = SEND_PULL_HEADER;
@@ -43,7 +45,7 @@ void GPRS::ReceiveGprsData() {
 
 	while (1) {
 		// break if timeout
-		if (millis() - prev_time > 1000) {
+		if (millis() - prev_time > 6000) {
 			return;
 		}
 

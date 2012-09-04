@@ -21,6 +21,7 @@ ring_buffer rx_buffer_gsm = { { 0 }, 0, 0};
 //SoftwareSerial mySerial =  SoftwareSerial(rxPin, txPin);
 //SoftwareSerial mySerial(&rx_buffer_gsm, 2, 3);  //rx, tx
 SoftwareSerial mySerial(&rx_buffer_gsm, 2, 3);  //rx, tx
+//HardwareSerial &mySerial = Serial;
 
 /**********************************************************
 	DEBUG
@@ -614,7 +615,7 @@ void GSM::TurnOn(long baud_rate)
   
   #ifdef DEBUG_PRINT
     // parameter 0 - because module is off so it is not necessary 
-    // to send finish AT<CR> here
+    // to s`end finish AT<CR> here
     DebugPrint(F("DEBUG: baud "), 0);
 	DebugPrint(baud_rate, 0);
 #endif

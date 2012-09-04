@@ -49,9 +49,9 @@
 								</option>
 								<option id="de.innot.avreclipse.compiler.option.def.1749719195" name="Define Syms (-D)" superClass="de.innot.avreclipse.compiler.option.def" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="ARDUINO=100"/>
-									<listOptionValue builtIn="false" value="DEBUG_PRINT"/>
-									<listOptionValue builtIn="false" value="DEBUG_GSMRX"/>
-									<listOptionValue builtIn="false" value="DEBUG_ATCOMMANDS"/>
+									<listOptionValue builtIn="false" value="ZDEBUG_PRINT"/>
+									<listOptionValue builtIn="false" value="ZDEBUG_GSMRX"/>
+									<listOptionValue builtIn="false" value="ZDEBUG_ATCOMMANDS"/>
 								</option>
 								<inputType id="de.innot.avreclipse.compiler.winavr.input.220808875" name="C Source Files" superClass="de.innot.avreclipse.compiler.winavr.input"/>
 							</tool>
@@ -72,7 +72,7 @@
 									<listOptionValue builtIn="false" value="ARDUINO=100"/>
 									<listOptionValue builtIn="false" value="DEBUG_PRINT"/>
 									<listOptionValue builtIn="false" value="DEBUG_GSMRX"/>
-									<listOptionValue builtIn="false" value="DEBUG_ATCOMMANDS"/>
+									<listOptionValue builtIn="false" value="ZDEBUG_ATCOMMANDS"/>
 								</option>
 								<option id="de.innot.avreclipse.cppcompiler.option.verbose.1662963937" name="Verbose (-v)" superClass="de.innot.avreclipse.cppcompiler.option.verbose" value="false" valueType="boolean"/>
 								<option id="de.innot.avreclipse.cppcompiler.option.otherflags.1255581868" name="Other flags" superClass="de.innot.avreclipse.cppcompiler.option.otherflags" value="" valueType="string"/>

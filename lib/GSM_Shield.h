@@ -60,6 +60,7 @@
 #define STATUS_REGISTERED           2
 #define STATUS_USER_BUTTON_ENABLE   4
 
+//extern HardwareSerial &mySerial;
 extern SoftwareSerial mySerial;
 
 // SMS type 

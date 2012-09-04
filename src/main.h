@@ -2,8 +2,10 @@
  * main.h
  *
  */
-#ifndef MAIN_H_
-#define MAIN_H_
+#ifndef Main_H_
+#define Main_H_
+
+#define JSON_MAX_DATA_BUFFER 128
 
 #include "SimpleJsonParser.h"
 
@@ -15,4 +17,4 @@ extern json_parser_t json_parser;
 	inline void onSerialReceive(char *);
 #endif
 
-#endif /* MAIN_H_ */
+#endif /* Main_H_ */

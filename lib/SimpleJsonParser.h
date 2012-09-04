@@ -45,23 +45,21 @@ typedef uint8_t byte;
 ******************************************************************************/
 
 // Max depth that could be parsed
+#ifndef JSON_MAX_DEPTH
 #define JSON_MAX_DEPTH	2
+#endif
 
 // a lenght of data buffer
-#define JSON_MAX_DATA_BUFFER 64
+#ifndef JSON_MAX_DATA_BUFFER
+#define JSON_MAX_DATA_BUFFER 128
+#endif
 
 // max available tokens
+#ifndef JSON_MAX_TOKENS
 #define JSON_MAX_TOKENS 12
+#endif
 
 
-
-
-#define JSON_FIELD_MASK 	_BV(0) // opened or closed field
-
-enum json_field_enum {
-	JSON_BLOCK_CLOSED = 0,
-	JSON_BLOCK_OPEN   = 1,
-};
 
 struct json_token_t {
 	size_t left;
@@ -70,7 +68,7 @@ struct json_token_t {
 
 struct json_parser_t {
 	uint8_t			level;	// depth level
-	byte			type;	//
+	byte			flag;	//
 	size_t			ref[JSON_MAX_DEPTH];	// references array
 
 	json_token_t  	tokens[JSON_MAX_TOKENS];
@@ -86,7 +84,8 @@ int  json_parse(json_parser_t *p, char chr);
 
 void 		 *json_get_token(json_parser_t *p, json_token_t *tok, char *buff, size_t len);
 size_t 		  json_token_size(json_parser_t *p, json_token_t *tok);
-json_token_t *json_find_token(json_parser_t *p, char *str);
+json_token_t *json_find_tag_value_token(json_parser_t *p, char *str);
+char 		 *json_get_tag_value(json_parser_t *p, char *tag);
 
 
 #endif /* Simple_Json_Parser_H_ */

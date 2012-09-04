@@ -26,6 +26,18 @@
 
 #define json_fill_buff_index (((size_t)p->pdata - (size_t)&p->data[0]))
 
+
+
+#define JSON_SKIP_MASK 		_BV(0)
+#define JSON_FIELD_MASK 	_BV(1) // opened or closed field
+
+enum json_field_enum {
+	JSON_BLOCK_CLOSED = 0,
+	JSON_BLOCK_OPEN   = 2,
+	JSON_SKIP_NEXT	  = 3,
+};
+
+
 /*
  *
  */
@@ -68,13 +80,24 @@ int json_parse(json_parser_t *p, char chr) {
 		else { goto skip; }
 	}
 
+	// add next as is
+	if (chr == '\\') {
+		p->flag |= JSON_SKIP_MASK;
+		goto find;
+	}
+
+	if (p->flag == JSON_SKIP_NEXT) {
+		p->flag &= ~JSON_SKIP_MASK;
+		goto find;
+	}
+
 	// check if this not
 	if (chr == '"') {
-		p->type ^= JSON_FIELD_MASK;
+		p->flag ^= JSON_FIELD_MASK;
 	}
 
 	//if field closed
-	if ( (p->type & JSON_FIELD_MASK) == 0 ) {
+	if ( p->flag == JSON_BLOCK_CLOSED ) {
 
 		// calculate level
 		switch(chr) {
@@ -173,7 +196,7 @@ void *json_get_token(json_parser_t *p, json_token_t *tok, char *buff, size_t len
 /*
  * Return reference to the finded token
  */
-json_token_t *json_find_token(json_parser_t *p, char *str) {
+json_token_t *json_find_tag_value_token(json_parser_t *p, char *str) {
 
 	char *start_addr;
 
@@ -183,9 +206,28 @@ json_token_t *json_find_token(json_parser_t *p, char *str) {
 	size_t addr = (size_t)start_addr + strlen(str);
 
 	// find token
-	for (int i=0; i<JSON_MAX_TOKENS; i += 2 ) {
+	for (int i=0; i < JSON_MAX_TOKENS; i += 2 ) {
 		if ( p->tokens[i].left == addr ) {
 			return &p->tokens[i];
+		}
+	}
+	return 0;
+}
+
+/*
+ * don't forget to free
+ */
+char *json_get_tag_value(json_parser_t *p, char *tag) {
+	json_token_t 	*token;
+	size_t		 	size;
+	char 		 	*value;
+
+	if ( (token = json_find_tag_value_token(p, tag)) ) {
+		size = json_token_size(p, token);
+		if ((value = (char*) malloc(size))) {
+			json_get_token(p, token, value, size);
+			return value;
+			//free(value);
 		}
 	}
 	return 0;
