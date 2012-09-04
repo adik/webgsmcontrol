@@ -26,18 +26,6 @@
 
 #define json_fill_buff_index (((size_t)p->pdata - (size_t)&p->data[0]))
 
-
-
-#define JSON_SKIP_MASK 		_BV(0)
-#define JSON_FIELD_MASK 	_BV(1) // opened or closed field
-
-enum json_field_enum {
-	JSON_BLOCK_CLOSED = 0,
-	JSON_BLOCK_OPEN   = 2,
-	JSON_SKIP_NEXT	  = 3,
-};
-
-
 /*
  *
  */
@@ -46,15 +34,18 @@ void json_init(json_parser_t *p) {
 }
 
 /*
- *  Clean buffers
+ *	Clean buffers
  */
 void json_clean_tokens(json_parser_t *p) {
 // find token
 	for (int i=0; i<JSON_MAX_TOKENS; ++i ) {
-		p->tokens[i].left 	= 0;
-		p->tokens[i].right  = 0;
+		p->tokens[i].left	= 0;
+		p->tokens[i].right	= 0;
 	}
 	p->data[0] = '\0';
+	p->flags.is_val = 0;
+	p->flags.skip_next = 0;
+	p->level = 0;
 	p->pdata  = &p->data[0];
 	p->ptoken = &p->tokens[0];
 }
@@ -80,24 +71,25 @@ int json_parse(json_parser_t *p, char chr) {
 		else { goto skip; }
 	}
 
-	// add next as is
-	if (chr == '\\') {
-		p->flag |= JSON_SKIP_MASK;
+	if (p->flags.skip_next) {
+		p->flags.skip_next = 0;
 		goto find;
+	}
+	else if (chr == '\\') {
+		if (p->flags.is_val) 
+			p->flags.skip_next = 1;
+		goto skip;
 	}
 
-	if (p->flag == JSON_SKIP_NEXT) {
-		p->flag &= ~JSON_SKIP_MASK;
-		goto find;
-	}
+	// p->flag &= ~JSON_SKIP_MASK;
 
 	// check if this not
 	if (chr == '"') {
-		p->flag ^= JSON_FIELD_MASK;
+		p->flags.is_val ^= 1;
 	}
 
 	//if field closed
-	if ( p->flag == JSON_BLOCK_CLOSED ) {
+	if ( p->flags.is_val == 0 ) {
 
 		// calculate level
 		switch(chr) {
@@ -155,7 +147,6 @@ find:
 	// buffer overflow
 	if (json_fill_buff_index >= JSON_MAX_DATA_BUFFER)
 		goto error;
-
 	*p->pdata++ = chr;
 
 // wait next character
@@ -165,7 +156,7 @@ skip:
 // error
 error:
 	json_clean_tokens(p);
-	return 0;
+	return -1;
 
 // parse finished
 finish:
@@ -179,14 +170,14 @@ finish:
 }
 
 /*
- *  Calculate token size
+ *	Calculate token size
  */
 size_t json_token_size(json_parser_t *p, json_token_t *tok) {
 	return tok->right - tok->left;
 }
 
 /*
- *  Copy token value to buffer
+ *	Copy token value to buffer
  */
 void *json_get_token(json_parser_t *p, json_token_t *tok, char *buff, size_t len) {
 	memcpy(buff, (char *)(tok->left), len);
@@ -218,9 +209,9 @@ json_token_t *json_find_tag_value_token(json_parser_t *p, char *str) {
  * don't forget to free
  */
 char *json_get_tag_value(json_parser_t *p, char *tag) {
-	json_token_t 	*token;
-	size_t		 	size;
-	char 		 	*value;
+	json_token_t	*token;
+	size_t			size;
+	char			*value;
 
 	if ( (token = json_find_tag_value_token(p, tag)) ) {
 		size = json_token_size(p, token);

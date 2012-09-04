@@ -66,12 +66,17 @@ struct json_token_t {
 	size_t right;
 };
 
+struct json_flag_t {
+	byte is_val:1;
+	byte skip_next:1;
+};
+
 struct json_parser_t {
 	uint8_t			level;	// depth level
-	byte			flag;	//
+	json_flag_t		flags;	//
 	size_t			ref[JSON_MAX_DEPTH];	// references array
 
-	json_token_t  	tokens[JSON_MAX_TOKENS];
+	json_token_t	tokens[JSON_MAX_TOKENS];
 	json_token_t	*ptoken;
 
 	char			data[JSON_MAX_DATA_BUFFER];
@@ -82,10 +87,10 @@ void json_init(json_parser_t *parser);
 void json_clean_tokens(json_parser_t *p);
 int  json_parse(json_parser_t *p, char chr);
 
-void 		 *json_get_token(json_parser_t *p, json_token_t *tok, char *buff, size_t len);
-size_t 		  json_token_size(json_parser_t *p, json_token_t *tok);
+void		 *json_get_token(json_parser_t *p, json_token_t *tok, char *buff, size_t len);
+size_t		  json_token_size(json_parser_t *p, json_token_t *tok);
 json_token_t *json_find_tag_value_token(json_parser_t *p, char *str);
-char 		 *json_get_tag_value(json_parser_t *p, char *tag);
+char		 *json_get_tag_value(json_parser_t *p, char *tag);
 
 
 #endif /* Simple_Json_Parser_H_ */
