@@ -49,8 +49,8 @@
 								</option>
 								<option id="de.innot.avreclipse.compiler.option.def.1749719195" name="Define Syms (-D)" superClass="de.innot.avreclipse.compiler.option.def" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="ARDUINO=100"/>
-									<listOptionValue builtIn="false" value="ZDEBUG_PRINT"/>
-									<listOptionValue builtIn="false" value="ZDEBUG_GSMRX"/>
+									<listOptionValue builtIn="false" value="DEBUG_PRINT"/>
+									<listOptionValue builtIn="false" value="DEBUG_GSMRX"/>
 									<listOptionValue builtIn="false" value="ZDEBUG_ATCOMMANDS"/>
 								</option>
 								<inputType id="de.innot.avreclipse.compiler.winavr.input.220808875" name="C Source Files" superClass="de.innot.avreclipse.compiler.winavr.input"/>
@@ -112,8 +112,8 @@
 						</tool>
 					</fileInfo>
 					<sourceEntries>
-						<entry excluding="lib/GSM_Shield_SAPBR.cpp|lib/GSM_Shield_SAPBR.h|lib.ex|arduino-core|src|core" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
+						<entry excluding="lib/sha1.cpp|lib/GSM_Shield_SAPBR.cpp|lib/GSM_Shield_SAPBR.h|lib.ex|arduino-core|src|core" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -217,8 +217,8 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="lib.ex|arduino-core|src|core" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
+						<entry excluding="lib/sha1.cpp|lib.ex|arduino-core|src|core" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

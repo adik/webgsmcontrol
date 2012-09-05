@@ -13,8 +13,9 @@
 #include <GSM_Shield_GPRS.h>
 #include <GSM_Shield.h>
 #include <main.h>
-#include "SimpleJsonParser.h"
 
+#include "SimpleJsonParser.h"
+#include "sha256.h"
 
 #ifdef DEBUG_PRINT
 char _serial_buffer[SERIAL_BUFF_SIZE+1];
@@ -25,6 +26,13 @@ char _serial_buffer[SERIAL_BUFF_SIZE+1];
 // definition of instance of GSM class
 GPRS gsm;
 
+// encryption
+Sha256Class Sha256;
+
+// declare parser variable
+json_parser_t json_parser = {};
+
+
 const prog_char HTTP_connectWS[] PROGMEM = {
 			"GET %p HTTP/1.1\r\n"
 			"Upgrade: WebSocket\r\n"
@@ -33,19 +41,50 @@ const prog_char HTTP_connectWS[] PROGMEM = {
 			"Origin: ArduinoWebSocketClient\r\n"
 			"\r\n" };
 
-// declare parser variable
-json_parser_t json_parser = {};
 
-// declare s
+
+
+const uint8_t Pusher_Key[] = "8185ce71534c69c42b72";
+const uint8_t Pusher_Secret[]= "c30a8df113dd52dc64e4";
+
+char auth_token[65];
+
+/**********************************************************
+
+**********************************************************/
+
+
+
+inline void generate_auth(char *str) {
+	uint8_t *hash;
+	char 	*ap;
+
+	Sha256.initHmac(Pusher_Secret, 20);
+	Sha256.print(str);
+
+	hash = Sha256.resultHmac();
+
+	ap = &auth_token[0];
+
+	for (int i=0; i<HASH_LENGTH; i++) {
+			*ap++ = "0123456789abcdef"[hash[i]>>4];
+			*ap++ = "0123456789abcdef"[hash[i]&0xf];
+	}
+	*ap='\0';
+}
+
+/**********************************************************
+ Receive GPRS data handler
+**********************************************************/
+
+// declare state
 static enum {
 	GET_HEADER = 0,
 	WAIT_HEADER_END = 1,
 	HEADER_RECEIVED = 3
 } recv_state;
 
-/**********************************************************
- Receive GPRS data handler
-**********************************************************/
+
 void recv_data(byte chr) {
 
 	// skip header
@@ -75,7 +114,9 @@ void recv_data(byte chr) {
 
 process_data:
 
+#ifdef DEBUG_PRINT
 	Serial.write(chr);
+#endif
 
 	// parse received json stream
 	if ( json_parse(&json_parser, chr) ) {
@@ -85,19 +126,28 @@ process_data:
 		event = json_get_tag_value(&json_parser, "event");
 
 		if (event) {
-			Serial.print("Event:");
-			Serial.println(event);
+			if (strstr(event, "pusher:connection_established")) {
+				if ((data = json_get_tag_value(&json_parser, "data"))) {
+					char tmp[24];
+					memset(tmp,'\0', 24);
+					char channel[]=":private-cmd";
 
-			if ((data = json_get_tag_value(&json_parser, "data"))) {
-				Serial.print("Data:");
-				Serial.println(data);
+					//"{\"socket_id\":\"12035.86349\"}";
+					strncpy(tmp, data+14, (strlen(data)-2-14));
+					strcat(tmp, channel);
+
+					generate_auth(tmp);
+				}
+				free(data);
 			}
-			free(data);
+			else if (strstr(event, "pusher") == 0) {
+		        gsm.TCP_Send(PSTR("%d{\"event\":\"client-responce\",\"data\":\"pong\",\"channel\":\"private-cmd\"}%d"),
+		        		0, 255) ;
+			}
 		}
 
 		// clean garbage
 		free(event);
-
 		json_clean_tokens(&json_parser);
 	}
 
@@ -139,8 +189,8 @@ void connect_ws() {
 
 		// subscribe a channel
 		//gsm.TCP_Send(HTTP_WSSubscribe, 0, 255);
-        gsm.TCP_Send(PSTR("%d{\"event\":\"%p\",\"data\":{%p}}%d"),
-        		0, PSTR("pusher:subscribe"), PSTR("\"channel\":\"private-cmd\"") ,255) ;
+        gsm.TCP_Send(PSTR("%d{\"event\":\"%p\",\"data\":{\"channel\":\"private-cmd\",\"auth\":\"%s:%s\"}}%d"),
+        		0, PSTR("pusher:subscribe"), Pusher_Key, auth_token, 255) ;
 
 	}
 }
@@ -150,9 +200,12 @@ void connect_ws() {
 /**********************************************************
 
 **********************************************************/
+
+
 inline void setup() {
 #ifdef DEBUG_PRINT
-	Serial.begin(38400);
+	//Serial.begin(38400);
+	Serial.begin(9600);
 #endif
 	//gsm.InitSerLine(9600); //initialize serial 1
 	gsm.TurnOn(9600); //module power on
@@ -162,7 +215,10 @@ inline void setup() {
 	//
 	json_init(&json_parser);
 	gsm.setRecvHandler(recv_data);
+
+
 }
+
 
 /**********************************************************
 

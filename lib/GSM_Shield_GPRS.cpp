@@ -45,7 +45,7 @@ void GPRS::ReceiveGprsData() {
 
 	while (1) {
 		// break if timeout
-		if (millis() - prev_time > 6000) {
+		if (millis() - prev_time > 1000) {
 			return;
 		}
 
