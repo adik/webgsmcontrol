@@ -85,7 +85,7 @@ static enum {
 } recv_state;
 
 
-void recv_data(byte chr) {
+void recv_data(GSM *caller, byte chr) {
 
 	// skip header
 	switch (recv_state) {
@@ -141,8 +141,11 @@ process_data:
 				free(data);
 			}
 			else if (strstr(event, "pusher") == 0) {
-		        gsm.TCP_Send(PSTR("%d{\"event\":\"client-responce\",\"data\":\"pong\",\"channel\":\"private-cmd\"}%d"),
-		        		0, 255) ;
+
+				caller->send(
+					PSTR("%d{\"event\":\"client-responce\",\"data\":\"pong\",\"channel\":\"private-cmd\"}%d"),
+					0,
+					255);
 			}
 		}
 
@@ -172,6 +175,10 @@ void ws_event( const prog_char *fmt, ... ) {
 	- Subscribe to a channel
 **********************************************************/
 void connect_ws() {
+
+	//fixit
+	mySerial.flush();
+
 	// connect to WS
 	gsm.TCP_Connect(F("ws.pusherapp.com"));
 
@@ -227,10 +234,12 @@ inline void loop() {
 
 	static unsigned long last_fetch_time;
 
-
+	/*
 	if ((unsigned long)(millis() - last_fetch_time) >= 10000) {
-		// wash buffer
-		mySerial.flush();
+
+		// FIXIT:
+		mySerial.flush();// wash buffer
+
 		gsm.fetchState();
 		last_fetch_time = millis();
 	}
@@ -241,8 +250,7 @@ inline void loop() {
 
 	case CONNECT_OK:
 		//if ( CLS_DATA == gsm.GetCommLineStatus()) {
-		mySerial.flush();
-		gsm.ReceiveGprsData();
+		gsm.handleCommunication();
 		//};
 		delay(1000);
 		break;
@@ -260,12 +268,15 @@ inline void loop() {
 		connect_ws();
 		break;
 	}
+*/
 
-	#ifdef DEBUG_PRINT
+#ifdef DEBUG_PRINT
 	// process serial commands
 	if (Serial.available())
 		onSerialReceive(_serial_buffer);
-	#endif
+#endif
+
+	//delay(6000);
 }
 
 ////////// ---------------------------------- ////////

@@ -4,11 +4,20 @@
  *  Created on: 29 июля 2012
  *      Author: adik
  */
-
 #ifndef __GSM_Shield_GPRS
 #define __GSM_Shield_GPRS
 
 #include <GSM_Shield.h>
+
+#define GPRS_DATA_BUFFER_SIZE 200
+
+struct gprs_ring_buffer {
+  byte buffer[GPRS_DATA_BUFFER_SIZE];
+  volatile byte *head;
+  volatile byte *tail;
+};
+
+extern gprs_ring_buffer gprs_rx;
 
 
 enum gprs_state_enum {
@@ -30,7 +39,7 @@ enum gprs_state_enum {
 class GPRS : public GSM
 {
 private:
-	typedef 		void (*EventHandler)(const byte) ;
+	typedef 		void (*EventHandler)(GSM *stream, const byte) ;
 	byte 			gprs_state;
 	EventHandler 	_onReceiveHandler;
 
@@ -39,7 +48,11 @@ public:
 
 	void setRecvHandler( EventHandler handler ) {  _onReceiveHandler = handler; };
 
-	void ReceiveGprsData();
+	void handleCommunication();
+
+	byte RX_packet();
+	void Handle_Data();
+	void TX_Data();
 
 	void GPRS_Context2Nvram();
 

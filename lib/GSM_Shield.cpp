@@ -421,10 +421,20 @@ byte GSM::WaitResp(uint16_t start_comm_tmout, uint16_t max_interchar_tmout,
 /**********************************************************
 
 **********************************************************/
-void GSM::vprintf_P(Stream &stream, const prog_char *fmt, ...) {
+void GSM::send(Stream &stream, const prog_char *fmt, ...) {
 	va_list   args;
 	va_start(args, fmt);
 	vprintf_P(stream, fmt, args);
+	va_end(args);
+}
+
+/**********************************************************
+
+**********************************************************/
+void GSM::send(const prog_char *fmt, ...) {
+	va_list   args;
+	va_start(args, fmt);
+	vprintf_P(mySerial, fmt, args);
 	va_end(args);
 }
 
@@ -508,7 +518,7 @@ char GSM::SendATCmdWaitResp(uint16_t start_comm_tmout,
 			delay(500);
 
 		va_start(args, fmt);
-		vprintf_P(mySerial, fmt, args); mySerial.write('\r');
+		send(fmt, args); mySerial.write('\r');
 		va_end(args);
 
 		// get response
@@ -610,7 +620,7 @@ byte GSM::IsInitialized(void)
 **********************************************************/
 void GSM::TurnOn(long baud_rate)
 {
-  SetCommLineStatus(CLS_ATCMD);
+  //SetCommLineStatus(CLS_ATCMD);
   mySerial.begin(baud_rate);
   
   #ifdef DEBUG_PRINT
@@ -714,9 +724,9 @@ void GSM::TurnOn(long baud_rate)
 						DebugPrint(buff, 0);
 					#endif
 					*/
-				  mySerial.write("AT+IPR=");
+				  mySerial.print(F("AT+IPR="));
 				  mySerial.write(baud_rate);    
-				  mySerial.write("\r"); // send <CR>
+				  mySerial.write('\r'); // send <CR>
 				  delay(500);
 				  mySerial.begin(baud_rate);
 				  delay(100);
@@ -733,7 +743,7 @@ void GSM::TurnOn(long baud_rate)
 			  }
 			  
 			  // communication line is not used yet = free
-			  SetCommLineStatus(CLS_FREE);
+			  //SetCommLineStatus(CLS_FREE);
 			  // pointer is initialized to the first item of comm. buffer
 			  p_comm_buf = &comm_buf[0];
   
@@ -763,7 +773,7 @@ void GSM::TurnOn(long baud_rate)
 		#endif
   
 	}
-  SetCommLineStatus(CLS_FREE);
+  //SetCommLineStatus(CLS_FREE);
 
   // send collection of first initialization parameters for the GSM module    
   InitParam(PARAM_SET_0);
@@ -782,12 +792,12 @@ void GSM::InitParam(byte group)
   switch (group) {
     case PARAM_SET_0:
       // check comm line
-      if (CLS_FREE != GetCommLineStatus()) return;
+      //if (CLS_FREE != GetCommLineStatus()) return;
 	  
-	  	#ifdef DEBUG_PRINT
-			DebugPrint(F("DEBUG: configure the module PARAM_SET_0\r\n"), 0);
-		#endif
-      SetCommLineStatus(CLS_ATCMD);
+#ifdef DEBUG_PRINT
+    DebugPrint(F("DEBUG: configure the module PARAM_SET_0\r\n"), 0);
+#endif
+      //SetCommLineStatus(CLS_ATCMD);
 
       // Reset to the factory settings
       SendATCmdWaitResp(1000, 50, "OK", 5, PSTR("AT&F"));
@@ -805,17 +815,17 @@ void GSM::InitParam(byte group)
       //SendATCmdWaitResp("AT#GPIO=5,0,2", 500, 50, "OK", 5);
       // Switch OFF User LED- just as signalization we are finished
       //SendATCmdWaitResp("AT#GPIO=8,0,1", 500, 50, "OK", 5);
-      SetCommLineStatus(CLS_FREE);
+      //SetCommLineStatus(CLS_FREE);
       break;
 
     case PARAM_SET_1:
       // check comm line
-      if (CLS_FREE != GetCommLineStatus()) return;
+      //if (CLS_FREE != GetCommLineStatus()) return;
 	  
-	  	#ifdef DEBUG_PRINT
-			DebugPrint(F("DEBUG: configure the module PARAM_SET_1\r\n"), 0);
-		#endif
-      SetCommLineStatus(CLS_ATCMD);
+#ifdef DEBUG_PRINT
+    DebugPrint(F("DEBUG: configure the module PARAM_SET_1\r\n"), 0);
+#endif
+      //SetCommLineStatus(CLS_ATCMD);
 
       // Request calling line identification
       SendATCmdWaitResp(500, 50, "OK", 5, PSTR("AT+CLIP=1"));
@@ -840,7 +850,8 @@ void GSM::InitParam(byte group)
       //SendATCmdWaitResp("AT+CRSL=2", 500, 50, "OK", 5);
       // we must release comm line because SetSpeakerVolume()
       // checks comm line if it is free
-      SetCommLineStatus(CLS_FREE);
+      //SetCommLineStatus(CLS_FREE);
+
       // select speaker volume (0 to 14)
       //SetSpeakerVolume(9);
       // init SMS storage
@@ -866,16 +877,16 @@ void GSM::Echo(byte state)
 {
 	if (state == 0 or state == 1)
 	{
-	  SetCommLineStatus(CLS_ATCMD);
+	  //SetCommLineStatus(CLS_ATCMD);
 	  #ifdef DEBUG_PRINT
 		DebugPrint(F("DEBUG Echo\r\n"),1);
 	  #endif
-	  vprintf_P(mySerial, PSTR("ATE"));
+	  send(PSTR("ATE"));
 	  mySerial.write((int)state);    
-	  mySerial.write("\r");
+	  mySerial.write('\r');
 	  WaitResp(1000, 50);
 	  delay(500);
-	  SetCommLineStatus(CLS_FREE);
+	  //SetCommLineStatus(CLS_FREE);
 	}
 }
 
