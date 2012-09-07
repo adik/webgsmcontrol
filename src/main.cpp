@@ -78,14 +78,14 @@ inline void generate_auth(char *str) {
 **********************************************************/
 
 // declare state
-static enum {
+volatile enum recv_state_enum {
 	GET_HEADER = 0,
 	WAIT_HEADER_END = 1,
 	HEADER_RECEIVED = 3
 } recv_state;
 
 
-void recv_data(GSM *caller, byte chr) {
+void recv_data(byte chr) {
 
 	// skip header
 	switch (recv_state) {
@@ -137,15 +137,30 @@ process_data:
 					strcat(tmp, channel);
 
 					generate_auth(tmp);
+					gsm.SendATCmdWaitResp(1000, 100, ">", 1, PSTR("AT+CIPSEND"));
+					//gsm.vprintf_P(mySerial, PSTR("AT+CIPSEND\r"));
+					gsm.vprintf_P(mySerial, PSTR("%d{\"event\":\"%p\",\"data\":{\"channel\":\"private-cmd\",\"auth\":\"%s:%s\"}}%d"),
+			        		0, PSTR("pusher:subscribe"), Pusher_Key, auth_token, 255) ;
+					mySerial.write(0x1a);
+
+					//Serial.println(data);
+					//Serial.println(channel);
+					//Serial.println(auth_token);
+					//Serial.println((char*)Pusher_Key);
+					//Serial.println((char*)Pusher_Key);
+
 				}
 				free(data);
 			}
 			else if (strstr(event, "pusher") == 0) {
 
-				caller->send(
+				gsm.SendATCmdWaitResp(1000, 100, ">", 1, PSTR("AT+CIPSEND"));
+				//gsm.vprintf_P(mySerial, PSTR("AT+CIPSEND\r"));
+				gsm.vprintf_P(mySerial,
 					PSTR("%d{\"event\":\"client-responce\",\"data\":\"pong\",\"channel\":\"private-cmd\"}%d"),
 					0,
 					255);
+				mySerial.write(0x1a);
 			}
 		}
 
@@ -175,10 +190,6 @@ void ws_event( const prog_char *fmt, ... ) {
 	- Subscribe to a channel
 **********************************************************/
 void connect_ws() {
-
-	//fixit
-	mySerial.flush();
-
 	// connect to WS
 	gsm.TCP_Connect(F("ws.pusherapp.com"));
 
@@ -196,8 +207,10 @@ void connect_ws() {
 
 		// subscribe a channel
 		//gsm.TCP_Send(HTTP_WSSubscribe, 0, 255);
+		/*
         gsm.TCP_Send(PSTR("%d{\"event\":\"%p\",\"data\":{\"channel\":\"private-cmd\",\"auth\":\"%s:%s\"}}%d"),
         		0, PSTR("pusher:subscribe"), Pusher_Key, auth_token, 255) ;
+        */
 
 	}
 }
@@ -220,6 +233,7 @@ inline void setup() {
 	//gsm.InitSerLine(9600); //initialize serial 1
 	gsm.InitParam(PARAM_SET_0); //configure the module
 	//
+	//
 	json_init(&json_parser);
 	gsm.setRecvHandler(recv_data);
 
@@ -234,12 +248,7 @@ inline void loop() {
 
 	static unsigned long last_fetch_time;
 
-	/*
 	if ((unsigned long)(millis() - last_fetch_time) >= 10000) {
-
-		// FIXIT:
-		mySerial.flush();// wash buffer
-
 		gsm.fetchState();
 		last_fetch_time = millis();
 	}
@@ -268,12 +277,12 @@ inline void loop() {
 		connect_ws();
 		break;
 	}
-*/
 
 #ifdef DEBUG_PRINT
 	// process serial commands
-	if (Serial.available())
+	if (Serial.available()){
 		onSerialReceive(_serial_buffer);
+	}
 #endif
 
 	//delay(6000);
@@ -302,7 +311,7 @@ int main(void) {
 #ifdef DEBUG_PRINT
 
 byte incomingByte;
-byte recv_byte = 0;
+volatile byte recv_byte = 0;
 
 inline void onSerialReceive(char *buffer) {
 	incomingByte = Serial.read();

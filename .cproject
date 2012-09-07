@@ -103,17 +103,9 @@
 							<tool id="de.innot.avreclipse.tool.avrdude.app.debug.784283855" name="AVRDude" superClass="de.innot.avreclipse.tool.avrdude.app.debug"/>
 						</toolChain>
 					</folderInfo>
-					<fileInfo id="de.innot.avreclipse.configuration.app.debug.1780191341.847573839.53527313.599387629" name="GSM_Shield_SAPBR.h" rcbsApplicability="disable" resourcePath="lib/GSM_Shield_SAPBR.h" toolsToInvoke="">
-						<tool customBuildStep="true" id="org.eclipse.cdt.managedbuilder.ui.rcbs.2084681956" name="Resource Custom Build Step">
-							<inputType id="org.eclipse.cdt.managedbuilder.ui.rcbs.inputtype.1932374737" name="Resource Custom Build Step Input Type">
-								<additionalInput kind="additionalinputdependency" paths=""/>
-							</inputType>
-							<outputType id="org.eclipse.cdt.managedbuilder.ui.rcbs.outputtype.620848689" name="Resource Custom Build Step Output Type"/>
-						</tool>
-					</fileInfo>
 					<sourceEntries>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
-						<entry excluding="lib/GSM_Shield_Restricted.cpp|lib/sha1.cpp|lib/GSM_Shield_SAPBR.cpp|lib/GSM_Shield_SAPBR.h|lib.ex|arduino-core|src|core" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="lib/disabled|lib/GSM_Shield_Restricted.cpp|lib/sha1.cpp|lib/GSM_Shield_SAPBR.cpp|lib/GSM_Shield_SAPBR.h|lib.ex|arduino-core|src|core" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -218,7 +210,7 @@
 					</folderInfo>
 					<sourceEntries>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
-						<entry excluding="lib/GSM_Shield_Restricted.cpp|lib/sha1.cpp|lib.ex|arduino-core|src|core" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="lib/disabled|lib/GSM_Shield_Restricted.cpp|lib/sha1.cpp|lib.ex|arduino-core|src|core" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

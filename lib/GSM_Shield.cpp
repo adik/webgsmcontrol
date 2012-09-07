@@ -191,7 +191,7 @@ void GSM::RxInit(uint16_t start_comm_tmout, uint16_t max_interchar_tmout)
   p_comm_buf = &comm_buf[0];
   comm_buf_len = 0;
   st = 0;
-//  mySerial.flush(); // erase rx circular buffer
+  mySerial.flush(); // erase rx circular buffer
 }
 
 /**********************************************************
@@ -261,7 +261,7 @@ byte GSM::IsRxFinished(void)
       // if there are some received bytes postpone the timeout
       if (num_of_bytes == 0) prev_time = millis();
 
-      if (c > 0 && comm_buf_len < COMM_BUF_LEN) {
+      if (comm_buf_len < COMM_BUF_LEN) {
         // we have still place in the GSM internal comm. buffer =>
         // move available bytes from circular buffer 
         // to the rx buffer
@@ -273,9 +273,9 @@ byte GSM::IsRxFinished(void)
                                         // so after each character we have
                                         // valid string finished by the 0x00
       } else {
-    	  ret_val = RX_FINISHED;
-    	  goto finish;
-    	  break;
+    	  //ret_val = RX_FINISHED;
+    	  //goto finish;
+    	  //break;
       }
     }
 
@@ -421,7 +421,7 @@ byte GSM::WaitResp(uint16_t start_comm_tmout, uint16_t max_interchar_tmout,
 /**********************************************************
 
 **********************************************************/
-void GSM::send(Stream &stream, const prog_char *fmt, ...) {
+void GSM::vprintf_P(Stream &stream, const prog_char *fmt, ...) {
 	va_list   args;
 	va_start(args, fmt);
 	vprintf_P(stream, fmt, args);
@@ -518,7 +518,7 @@ char GSM::SendATCmdWaitResp(uint16_t start_comm_tmout,
 			delay(500);
 
 		va_start(args, fmt);
-		send(fmt, args); mySerial.write('\r');
+		vprintf_P(mySerial,fmt, args); mySerial.write('\r');
 		va_end(args);
 
 		// get response
@@ -623,7 +623,7 @@ void GSM::TurnOn(long baud_rate)
   //SetCommLineStatus(CLS_ATCMD);
   mySerial.begin(baud_rate);
   
-  #ifdef DEBUG_PRINT
+#ifdef DEBUG_PRINT
     // parameter 0 - because module is off so it is not necessary 
     // to s`end finish AT<CR> here
     DebugPrint(F("DEBUG: baud "), 0);
@@ -724,12 +724,13 @@ void GSM::TurnOn(long baud_rate)
 						DebugPrint(buff, 0);
 					#endif
 					*/
-				  mySerial.print(F("AT+IPR="));
-				  mySerial.write(baud_rate);    
-				  mySerial.write('\r'); // send <CR>
+
 				  delay(500);
+				  mySerial.print("AT+IPR=0");
+				  mySerial.print(baud_rate);
+				  mySerial.write('\r'); // send <CR>
 				  mySerial.begin(baud_rate);
-				  delay(100);
+				  delay(500);
 				  if (AT_RESP_OK == SendATCmdWaitResp("AT", 500, 100, "OK", 5)){
 						#ifdef DEBUG_PRINT
 							// parameter 0 - because module is off so it is not necessary 
@@ -738,7 +739,7 @@ void GSM::TurnOn(long baud_rate)
 							DebugPrint(baud_rate, 0);	
 						#endif
 						break;					
-				}
+				  }
 				  
 			  }
 			  
@@ -881,8 +882,8 @@ void GSM::Echo(byte state)
 	  #ifdef DEBUG_PRINT
 		DebugPrint(F("DEBUG Echo\r\n"),1);
 	  #endif
-	  send(PSTR("ATE"));
-	  mySerial.write((int)state);    
+	  vprintf_P(mySerial,PSTR("ATE"));
+	  mySerial.print((int)state);
 	  mySerial.write('\r');
 	  WaitResp(1000, 50);
 	  delay(500);

@@ -1,4 +1,4 @@
-#Tue Jul 24 23:41:30 EEST 2012
+#Fri Sep 07 03:26:48 EEST 2012
 avrtarget/ClockFrequency=16000000
 avrtarget/ExtRAMSize=0
 avrtarget/ExtendedRAM=false
@@ -11,9 +11,9 @@ avrtarget/avrdude/EEPROMFile=
 avrtarget/avrdude/EEPROMFromConfig=true
 avrtarget/avrdude/FlashFile=
 avrtarget/avrdude/FlashFromConfig=true
-avrtarget/avrdude/NoChipErase=false
+avrtarget/avrdude/NoChipErase=true
 avrtarget/avrdude/NoSigCheck=true
-avrtarget/avrdude/NoVerify=false
+avrtarget/avrdude/NoVerify=true
 avrtarget/avrdude/NoWrite=false
 avrtarget/avrdude/OtherOptions=
 avrtarget/avrdude/ProgrammerID=programmerconfig.2

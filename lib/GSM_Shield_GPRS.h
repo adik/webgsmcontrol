@@ -9,7 +9,7 @@
 
 #include <GSM_Shield.h>
 
-#define GPRS_DATA_BUFFER_SIZE 200
+#define GPRS_DATA_BUFFER_SIZE 256
 
 struct gprs_ring_buffer {
   byte buffer[GPRS_DATA_BUFFER_SIZE];
@@ -39,7 +39,7 @@ enum gprs_state_enum {
 class GPRS : public GSM
 {
 private:
-	typedef 		void (*EventHandler)(GSM *stream, const byte) ;
+	typedef 		void (*EventHandler)(const byte) ;
 	byte 			gprs_state;
 	EventHandler 	_onReceiveHandler;
 

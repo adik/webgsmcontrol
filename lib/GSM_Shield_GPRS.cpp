@@ -14,7 +14,7 @@
 #define GPRS_DATA_RECEIVE_TIMEOUT  1000
 
 
-
+gprs_ring_buffer gprs_rx;
 
 /**********************************************************
  Class constructor
@@ -28,27 +28,36 @@ GPRS::GPRS(void) : GSM(), gprs_state(PDP_DEACT) { }
 void GPRS::handleCommunication()
 {
 
-	while ( RX_packet() ) { // Receive data
+	//SendATCmdWaitResp(1000, 100, "", 1, PSTR("AT+CIPSPRT=0"));
+	//SendATCmdWaitResp(1000, 100, "", 1, PSTR("AT+CIPATS=1,2"));
+
+
+	while (RX_packet()) { // Receive data
 
 		// Start a data send session
-		if (AT_RESP_OK == SendATCmdWaitResp(1000, 100, ">", 1, PSTR("AT+CIPSEND"))) {
+		//if (AT_RESP_OK == SendATCmdWaitResp(1000, 100, ">", 1, PSTR("AT+CIPSEND"))) {
+
+			//SendATCmdWaitResp(1000, 100, ">", 1, PSTR("AT+CIPSEND"));
 
 			// process incoming packet
 			while (gprs_rx.head < gprs_rx.tail) {
-				_onReceiveHandler(this, *gprs_rx.head++);
+				_onReceiveHandler(*gprs_rx.head++);
 			}
 
 			// finish and send packet
-			mySerial.write('\x1A');
-		}
-		else {
-				break;
-		}
+			//mySerial.write(0x1A);
+		//}
+		//else {
+		//		break;
+		//}
 	}
+
+	//SendATCmdWaitResp(1000, 100, "", 1, PSTR("AT+CIPSPRT=1"));
+	//SendATCmdWaitResp(1000, 100, "", 1, PSTR("AT+CIPATS=0"));
 }
 
 
-inline byte GPRS::RX_packet() {
+byte GPRS::RX_packet() {
 
 	unsigned long 	prev_time;
 	int 			c = 0;
@@ -65,7 +74,7 @@ inline byte GPRS::RX_packet() {
 		GET_DATA
 	};
 
-	volatile static byte req_state;
+	static byte req_state;
 
 	// init rx buffer
 	gprs_rx.head = &gprs_rx.buffer[0];
@@ -84,11 +93,8 @@ inline byte GPRS::RX_packet() {
 
 		// receive nn bytes of data
 		if (req_state == SEND_PULL_HEADER) {
-
-			// FIXIT:
 			mySerial.flush();
-
-			send(PSTR("AT+CIPRXGET=2,164")); // TODO: calculate buffer size
+			vprintf_P(mySerial, PSTR("AT+CIPRXGET=2,230")); // TODO: calculate buffer size
 			mySerial.write('\r');
 
 			req_state = REQ_HEADER_PARSE;
@@ -142,6 +148,8 @@ inline byte GPRS::RX_packet() {
 					return 1;
 				//	req_state = SEND_PULL_HEADER;
 				// end receiving data
+				else if (read_byte_count>0)
+					return 1;
 				else
 					return 0;
 			}
@@ -160,7 +168,7 @@ inline byte GPRS::RX_packet() {
 **********************************************************/
 void GPRS::fetchState() {
 
-	send(PSTR("AT+CIPSTATUS\r"));
+	vprintf_P(mySerial, PSTR("AT+CIPSTATUS\r"));
 
 	// 5 sec. for initial comm tmout
 	// 50 msec. for inter character timeout
@@ -239,14 +247,10 @@ void GPRS::TCP_Send(const prog_char *data, ... ) {
 	 * If sending is successful:  When +CIPQSEND=0 = "SEND OK"  When +CIPQSEND=1  "DATA ACCEPT:<length>"
 	 * If sending fails: "SEND FAIL"
 	 */
-
-	// FIXIT:
-	mySerial.flush();
-
-	if (AT_RESP_OK == SendATCmdWaitResp(2000, 100, ">", 1, PSTR("AT+CIPSEND")))
+	if (AT_RESP_OK == SendATCmdWaitResp(2000, 150, ">", 1, PSTR("AT+CIPSEND")))
 	{
 		va_start(args, data);
-		send(data, args); mySerial.write('\x1A');
+		vprintf_P(mySerial, data, args); mySerial.write(0x1A);
 		va_end(args);
 
 		// waiting for receive +CIPRXGET:1
@@ -276,7 +280,7 @@ void GPRS::TCP_Close() {
 	 * returns CONNECTING or CONNECT OK, otherwise it will return
 	 * ERROR, after the connection is closed, the status is IP CLOSE in single IP mode *
 	 */
-	if (AT_RESP_OK == SendATCmdWaitResp(1000, 50, "OK", 3, PSTR("AT+CIPCLOSE=0"))) {
+	if (AT_RESP_OK == SendATCmdWaitResp(1000, 150, "OK", 3, PSTR("AT+CIPCLOSE=0"))) {
 		setState(TCP_CLOSED);
 	}
 }
@@ -290,17 +294,17 @@ void GPRS::GPRS_attach() {
 	byte status;
     byte no_of_attempts = 0;
 
-	if (AT_RESP_OK == SendATCmdWaitResp(1000, 50, "OK", 3, PSTR("AT+CGATT=1"))) {
+	if (AT_RESP_OK == SendATCmdWaitResp(1000, 150, "OK", 3, PSTR("AT+CGATT=1"))) {
 
 		/*
 		 * Get Data from Network Manually
 		 */
-		SendATCmdWaitResp(1000, 50, "OK", 3, PSTR("AT+CIPRXGET=1"));
+		SendATCmdWaitResp(1000, 150, "OK", 3, PSTR("AT+CIPRXGET=1"));
 
 		/* The write command and execution command of this command is valid only
 		 * at the state of IP INITIAL. After this command is executed, the state will be
 		 * changed to IP START.  */
-		SendATCmdWaitResp(1000, 50, "OK", 3, PSTR("AT+CSTT=\"internet\",\"\",\"\""));
+		SendATCmdWaitResp(1000, 150, "OK", 3, PSTR("AT+CSTT=\"internet\",\"\",\"\""));
 
 		/* AT+CIICR only activates moving scene at the status of IP START,
 		 * after operating this Command is executed, the state will be changed to
@@ -308,7 +312,7 @@ void GPRS::GPRS_attach() {
 		 * After module accepts the activated operation, if it is activated
 		 * successfully, module state will be changed to IP GPRSACT, and it
 		 * responds OK, otherwise it will responsd ERROR.  */
-		SendATCmdWaitResp(1000, 50, "OK", 3, PSTR("AT+CIICR"));
+		SendATCmdWaitResp(1000, 150, "OK", 3, PSTR("AT+CIICR"));
 
 		/*
 		 * Only after PDP context is activated, local IP Address can be obtained by
@@ -319,8 +323,8 @@ void GPRS::GPRS_attach() {
 				setState(IP_BUSY);
 				goto finish;
 			}
-			send(PSTR("AT+CIFSR")); mySerial.write('\r');
-			status = WaitResp(1000, 200);
+			vprintf_P(mySerial, PSTR("AT+CIFSR")); mySerial.write('\r');
+			status = WaitResp(1000, 150);
 			delay(500);
 		} while ((status != RX_FINISHED) || IsStringReceived("ERROR"));
 
@@ -330,14 +334,14 @@ void GPRS::GPRS_attach() {
 		// Add an IP Head at the Beginning of a Package Received
 		//      (0)	not add IP header
 		//      (1) add IP header, the format is "+IPD,data length:"
-		SendATCmdWaitResp(1000, 50, "OK", 3, PSTR("AT+CIPHEAD=0"));
+		SendATCmdWaitResp(1000, 150, "OK", 3, PSTR("AT+CIPHEAD=0"));
 
 		/*
 		 * Select TCPIP Application Mode
 		 * 0 normal mode
 		 * 1 transparent mode
 		 */
-		SendATCmdWaitResp(1000, 50, "OK", 1, PSTR("AT+CIPMODE=0"));
+		SendATCmdWaitResp(1000, 150, "OK", 1, PSTR("AT+CIPMODE=0"));
 
 		/*
 		 * Select Data Transmitting Mode
@@ -349,7 +353,7 @@ void GPRS::GPRS_attach() {
 		 * responsd DATA ACCEPT:<n>,<length>, while not responding
 		 * SEND OK.
 		 */
-		SendATCmdWaitResp(1000, 50, "OK", 1, PSTR("AT+CIPQSEND=0"));
+		SendATCmdWaitResp(1000, 150, "OK", 1, PSTR("AT+CIPQSEND=0"));
 	}
 
 finish:
@@ -368,7 +372,7 @@ void GPRS::GPRS_detach() {
 	 *   If "+PDP: DEACT" urc is reported which means the gprs is released by
 	 * the network, then user still needs to execute "AT+CIPSHUT"
 	 * command to make PDP context come back to original state. */
-	SendATCmdWaitResp(1000, 50, "OK", 3, PSTR("AT+CIPSHUT"));
+	SendATCmdWaitResp(1000, 150, "OK", 3, PSTR("AT+CIPSHUT"));
 	setState(IP_INITIAL);
 }
 

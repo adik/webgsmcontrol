@@ -161,9 +161,9 @@ class GSM
     // serial line initialization
     //void InitSerLine(long baud_rate);
     // set comm. line status
-    //inline void SetCommLineStatus(byte new_status) {comm_line_status = new_status;};
+    inline void SetCommLineStatus(byte new_status) {comm_line_status = new_status;};
     // get comm. line status
-    //inline byte GetCommLineStatus(void) {return comm_line_status;};
+    inline byte GetCommLineStatus(void) {return comm_line_status;};
 
 
     // turns on GSM module
@@ -230,7 +230,7 @@ class GSM
     // routines regarding communication with the GSM module
 
     void send(const prog_char *fmt, ...);
-	void send(Stream &stream, const prog_char *fmt, ...);
+	void vprintf_P(Stream &stream, const prog_char *fmt, ...);
 	void vprintf_P(Stream &stream, const prog_char *fmt, va_list args );
 
     void RxInit(uint16_t start_comm_tmout, uint16_t max_interchar_tmout);
