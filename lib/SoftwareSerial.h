@@ -54,7 +54,6 @@ struct ring_buffer
   volatile int tail;
 };
 
-
 class SoftwareSerial : public Stream
 {
 private:

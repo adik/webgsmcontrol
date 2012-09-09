@@ -1,25 +1,18 @@
 /*
  * main.h
  *
- *  Created on: 29 июля 2012
- *      Author: adik
  */
+#ifndef Main_H_
+#define Main_H_
 
-#ifndef MAIN_H_
-#define MAIN_H_
+#define JSON_MAX_DATA_BUFFER 128
 
+#include "SimpleJsonParser.h"
 
-#define PROGMEM_BUFF_SIZE	64
-
-
-#ifdef DEBUG_ATCOMMANDS
+#ifdef DEBUG_PRINT
 	#define SERIAL_BUFF_SIZE	64
-
 	inline int8_t SerialProcessCommand(char const*);
 	inline void onSerialReceive(char *);
 #endif
 
-
-
-
-#endif /* MAIN_H_ */
+#endif /* Main_H_ */

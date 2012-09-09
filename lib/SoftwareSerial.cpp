@@ -132,11 +132,6 @@ const int XMIT_START_ADJUSTMENT = 6;
 // Statics
 //
 SoftwareSerial *SoftwareSerial::active_object = 0;
-/*
-char SoftwareSerial::_receive_buffer[_SS_MAX_RX_BUFF]; 
-volatile uint8_t SoftwareSerial::_receive_buffer_tail = 0;
-volatile uint8_t SoftwareSerial::_receive_buffer_head = 0;
-*/
 
 //
 // Debugging
@@ -244,19 +239,19 @@ void SoftwareSerial::recv()
     if (_inverse_logic)
       d = ~d;
 
-    // if buffer full, set the overflow flag and return
+     // if buffer full, set the overflow flag and return
     if ((_rx_buffer->tail + 1) % _SS_MAX_RX_BUFF != _rx_buffer->head)
     {
       // save new data in buffer: tail points to where byte goes
     	_rx_buffer->buffer[_rx_buffer->tail] = d; // save new byte
     	_rx_buffer->tail = (_rx_buffer->tail + 1) % _SS_MAX_RX_BUFF;
-    } 
-    else 
+    }
+    else
     {
 #if _DEBUG // for scope: pulse pin as overflow indictator
-      DebugPulse(_DEBUG_PIN1, 1);
+        DebugPulse(_DEBUG_PIN1, 1);
 #endif
-      _buffer_overflow = true;
+        _buffer_overflow = true;
     }
   }
 
@@ -333,7 +328,7 @@ ISR(PCINT3_vect)
 //
 // Constructor
 //
-SoftwareSerial::SoftwareSerial(ring_buffer *rx_buffer, uint8_t receivePin, uint8_t transmitPin, bool inverse_logic /* = false */) :
+SoftwareSerial::SoftwareSerial(ring_buffer *rx_buffer, uint8_t receivePin, uint8_t transmitPin,	bool inverse_logic /* = false */) :
   _rx_delay_centering(0),
   _rx_delay_intrabit(0),
   _rx_delay_stopbit(0),

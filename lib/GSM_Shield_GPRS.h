@@ -4,12 +4,19 @@
  *  Created on: 29 июля 2012
  *      Author: adik
  */
-
-#ifndef GSM_SHIELD_GPRS_H_
-#define GSM_SHIELD_GPRS_H_
-
+#ifndef __GSM_Shield_GPRS
+#define __GSM_Shield_GPRS
 #include <GSM_Shield.h>
 
+#define GPRS_DATA_RECEIVE_TIMEOUT  1000
+
+#define GPRS_DATA_BUFFER_SIZE 256
+
+struct gprs_ring_buffer {
+  byte buffer[GPRS_DATA_BUFFER_SIZE];
+  volatile byte *head;
+  volatile byte *tail;
+};
 
 enum gprs_state_enum {
 	IP_BUSY = -1,
@@ -26,7 +33,6 @@ enum gprs_state_enum {
 	PDP_DEACT
 };
 
-
 class GPRS : public GSM
 {
 private:
@@ -39,11 +45,17 @@ public:
 
 	void setRecvHandler( EventHandler handler ) {  _onReceiveHandler = handler; };
 
-	void WaitGprsData();
+	void handleCommunication();
+
+	byte RX_packet();
+	void Handle_Data();
+	void TX_Data();
 
 	void GPRS_Context2Nvram();
 
-	void TCP_Connect();
+	void TCP_Connect(const char *);
+	void TCP_Connect(__FlashStringHelper *);
+
 	void TCP_Send(const prog_char *data, ...);
 	void TCP_Close();
 
@@ -57,4 +69,4 @@ public:
 
 
 
-#endif /* GSM_SHIELD_GPRS_H_ */
+#endif /* __GSM_Shield_GPRS */

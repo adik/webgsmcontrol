@@ -7,10 +7,13 @@
 #ifndef __GSM_Shield
 #define __GSM_Shield
 
+//#ifdef DEBUG_PRINT
 #include <SoftwareSerial.h>
+//#endif
+
 #include <Arduino.h>
 
-#define GSM_LIB_VERSION 102 // library version X.YY (e.g. 1.00)
+#define GSM_LIB_VERSION 202 // library version X.YY (e.g. 1.00)
 
 // if defined - debug print is enabled with possibility to print out 
 // debug texts to the terminal program
@@ -61,10 +64,12 @@
 #define STATUS_USER_BUTTON_ENABLE   4
 
 
+
+//#ifdef DEBUG_PRINT
 extern SoftwareSerial mySerial;
-
-extern uint16_t gprs_data_len;
-
+//#else
+//extern HardwareSerial &mySerial;
+//#endif
 
 // SMS type 
 // use by method IsSMSPresent()
@@ -96,7 +101,6 @@ enum rx_state_enum
                             // initial communication tmout occurred
   RX_LAST_ITEM
 };
-
 
 enum at_resp_enum 
 {
@@ -134,7 +138,6 @@ enum call_ret_val_enum
   CALL_LAST_ITEM
 };
 
-
 enum getsms_ret_val_enum
 {
   GETSMS_NO_SMS   = 0,
@@ -155,6 +158,8 @@ void gsmRecvCallback(uint8_t, ring_buffer *&);
 class GSM
 {
   public:
+	static void mySerialRecvByteCallback(uint8_t d, ring_buffer *&);
+
     byte comm_buf[COMM_BUF_LEN+1];  // communication buffer +1 for 0x00 termination
 
     // library version
@@ -164,9 +169,9 @@ class GSM
     // serial line initialization
     //void InitSerLine(long baud_rate);
     // set comm. line status
-    inline void SetCommLineStatus(byte new_status) {comm_line_status = new_status;};
+    //inline void SetCommLineStatus(byte new_status) {comm_line_status = new_status;};
     // get comm. line status
-    inline byte GetCommLineStatus(void) {return comm_line_status;};
+    //inline byte GetCommLineStatus(void) {return comm_line_status;};
 
 
     // turns on GSM module
@@ -230,11 +235,15 @@ class GSM
     char ComparePhoneNumber(byte position, char *phone_number);
 
 
-    // routines regarding communication with the GSM module
+    //
+    void WaitUntil_P(Stream &stream, const prog_char *target);
 
+    void send(const prog_char *fmt, ...);
 	void vprintf_P(Stream &stream, const prog_char *fmt, ...);
 	void vprintf_P(Stream &stream, const prog_char *fmt, va_list args );
 
+
+    // routines regarding communication with the GSM module
     void RxInit(uint16_t start_comm_tmout, uint16_t max_interchar_tmout);
     byte IsRxFinished(void);
     byte IsStringReceived(char const *compare_string);
