@@ -32,7 +32,7 @@ static json_parser_t json_parser = {};
 
 
 const prog_char HTTP_connectWS[] PROGMEM = {
-			"GET /app/%p?client=js&version=1.9.0 HTTP/1.1\r\n"
+			"GET /app/%p?client=js&version=1.12&protocol=5 HTTP/1.1\r\n"
 			"Upgrade: WebSocket\r\n"
 			"Connection: Upgrade\r\n"
 			"Host: %p\r\n"
@@ -129,39 +129,53 @@ process_data:
 		event = json_get_tag_value(&json_parser, "event");
 
 		if (event) {
-			if (strstr(event, "pusher:connection_established")) {
-				if ((data = json_get_tag_value(&json_parser, "data"))) {
-					char tmp[24];
-					memset(tmp,'\0', 24);
-					char channel[]=":private-cmd";
 
-					//"{\"socket_id\":\"12035.86349\"}";
-					strncpy(tmp, data+14, (strlen(data)-2-14));
-					strcat(tmp, channel);
+			Serial.print(event);
 
-					generate_auth(tmp);
+			if (strstr(event, "pusher")) {
 
-					gsm.TCP_Send(
-							PSTR("%d{\"event\":\"%p\",\"data\":{\"channel\":\"private-cmd\",\"auth\":\"%p:%s\"}}%d"),
-			        		0,
-			        		PSTR("pusher:subscribe"),
-			        		Pusher_Key,
-			        		auth_token,
-			        		255) ;
+				if (strstr(event, "connection_established")) {
+					if ((data = json_get_tag_value(&json_parser, "data"))) {
+						char tmp[24];
+						memset(tmp,'\0', 24);
+						char channel[]=":private-cmd";
 
-					//Serial.println(data);
-					//Serial.println(auth_token);
-					//Serial.println((char*)Pusher_Key);
-					//Serial.println((char*)Pusher_Key);
+						//"{\"socket_id\":\"12035.86349\"}";
+						strncpy(tmp, data+14, (strlen(data)-2-14));
+						strcat(tmp, channel);
+
+						generate_auth(tmp);
+
+						gsm.TCP_Send(
+								PSTR("%d{\"event\":\"%p\",\"data\":{\"channel\":\"private-cmd\",\"auth\":\"%p:%s\"}}%d"),
+								0,
+								PSTR("pusher:subscribe"),
+								Pusher_Key,
+								auth_token,
+								255
+						) ;
+
+						//Serial.println(data);
+						//Serial.println(auth_token);
+						//Serial.println((char*)Pusher_Key);
+						//Serial.println((char*)Pusher_Key);
+					}
+					free(data);
 				}
-				free(data);
-			}
-			else if (strstr(event, "pusher") == 0) {
+				else if (strstr(event, "ping")) {
+						gsm.TCP_Send( PSTR("%d{\"event\":\"pusher:pong\",\"data\":\"pong\"}%d"),
+								0,
+								255
+						) ;
+				}
 
+			}
+			else  {
 				gsm.TCP_Send(
-					PSTR("%d{\"event\":\"client-responce\",\"data\":\"pong\",\"channel\":\"private-cmd\"}%d"),
+					PSTR("%d{\"event\":\"client-responce\",\"data\":\"somedata\",\"channel\":\"private-cmd\"}%d"),
 					0,
-					255);
+					255
+				);
 			}
 		}
 
