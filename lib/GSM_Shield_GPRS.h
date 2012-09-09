@@ -10,7 +10,11 @@
 
 #define GPRS_DATA_RECEIVE_TIMEOUT  1000
 
+#ifdef DEBUG_PRINT
 #define GPRS_DATA_BUFFER_SIZE 256
+#else
+#define GPRS_DATA_BUFFER_SIZE 64
+#endif
 
 struct gprs_ring_buffer {
   byte buffer[GPRS_DATA_BUFFER_SIZE];

@@ -5,7 +5,9 @@
  www.hwkitchen.com
 */
 #include <Arduino.h>
+#ifdef DEBUG_PRINT
 #include <SoftwareSerial.h>
+#endif
 #include "GSM_Shield.h"
 
 extern "C" {
@@ -15,16 +17,13 @@ extern "C" {
 #define rxPin 2
 #define txPin 3
 
-// software serial buffer
-ring_buffer rx_buffer_gsm = { { 0 }, 0, 0};
-
 //SoftwareSerial mySerial =  SoftwareSerial(rxPin, txPin);
 //SoftwareSerial mySerial(&rx_buffer_gsm, 2, 3);  //rx, tx
-//#ifdef DEBUG_PRINT
-SoftwareSerial mySerial(&rx_buffer_gsm, 2, 3);  //rx, tx
-//#else
-//HardwareSerial &mySerial = Serial;
-//#endif
+#ifdef DEBUG_PRINT
+SoftwareSerial mySerial(2, 3);  //rx, tx
+#else
+HardwareSerial &mySerial = Serial;
+#endif
 
 
 /**********************************************************
@@ -466,15 +465,13 @@ void GSM::WaitUntil_P(Stream &stream, const prog_char *target) {
 		// if there are some received bytes postpone the timeout
 		prev_time = millis();
 
-		d = pgm_read_byte(p);
-		if (c == d) {
-			++p;
+		// FIXIT:
+		if (c == pgm_read_byte(p)) {
+			// if next byte is the last
+			if (pgm_read_byte(++p)=='\0')
+				return;
 		}
 		else {
-			// if find we find the latest char of a target string
-			if (d == '\0')
-				return;
-
 			// reset index if any char does not match
 			p = target;
 		}
@@ -565,7 +562,7 @@ void GSM::TurnOn(long baud_rate)
     // parameter 0 - because module is off so it is not necessary 
     // to s`end finish AT<CR> here
     DebugPrint(F("DEBUG: baud "), 0);
-	DebugPrint(baud_rate, 0);
+	//DebugPrint(baud_rate, 0);
 #endif
   
   if (AT_RESP_ERR_NO_RESP == SendATCmdWaitResp(500, 100, "OK", 5, PSTR("AT"))) {		//check power
@@ -664,9 +661,9 @@ void GSM::TurnOn(long baud_rate)
 					*/
 
 				  delay(500);
-				  mySerial.print("AT+IPR=0\r");
-				  //mySerial.print(baud_rate, 10);
-				  //mySerial.write('\r'); // send <CR>
+				  mySerial.print("AT+IPR=");
+				  mySerial.print(baud_rate, 10);
+				  mySerial.write('\r'); // send <CR>
 				  delay(1000);
 				  mySerial.begin(baud_rate);
 				  delay(500);

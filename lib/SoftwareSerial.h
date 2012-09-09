@@ -44,16 +44,6 @@ http://arduiniana.org.
 #define GCC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
 #endif
 
-//
-//
-//
-struct ring_buffer
-{
-  unsigned char buffer[_SS_MAX_RX_BUFF];
-  volatile int head;
-  volatile int tail;
-};
-
 class SoftwareSerial : public Stream
 {
 private:
@@ -73,12 +63,9 @@ private:
   uint16_t _inverse_logic:1;
 
   // static data
-  ring_buffer *_rx_buffer;
-  /*
   static char _receive_buffer[_SS_MAX_RX_BUFF]; 
   static volatile uint8_t _receive_buffer_tail;
   static volatile uint8_t _receive_buffer_head;
-  */
   static SoftwareSerial *active_object;
 
   // private methods
@@ -93,7 +80,7 @@ private:
 
 public:
   // public methods
-  SoftwareSerial(ring_buffer *rx_buffer, uint8_t receivePin, uint8_t transmitPin, bool inverse_logic = false);
+  SoftwareSerial(uint8_t receivePin, uint8_t transmitPin, bool inverse_logic = false);
   ~SoftwareSerial();
   void begin(long speed);
   bool listen();

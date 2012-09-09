@@ -95,8 +95,8 @@ byte GPRS::RX_packet() {
 		// process states
 		switch(req_state) {
 		case REQ_HEADER_PARSE:
-			//\r\n+CIPRXGET:2,255,52
-			if ( ++read_byte_count > 14 ) {
+			//\r\n+CIPRXGET:2,0,0
+			if ( ++read_byte_count > 4 ) {
 				if (c == '\n') {
 					/*#ifdef DEBUG_PRINT
 					DebugPrint(F("read_byte_count:"), 0);
@@ -115,6 +115,10 @@ byte GPRS::RX_packet() {
 				else {
 					pt = &left_data_size;
 				}
+			}
+			else {
+				WaitUntil_P(mySerial, PSTR("XGET:2,"));
+				read_byte_count=5;
 			}
 			break;
 

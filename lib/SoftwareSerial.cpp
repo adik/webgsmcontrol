@@ -42,8 +42,6 @@ http://arduiniana.org.
 #include <avr/pgmspace.h>
 #include "Arduino.h"
 #include "SoftwareSerial.h"
-
-
 //
 // Lookup table
 //
@@ -132,6 +130,9 @@ const int XMIT_START_ADJUSTMENT = 6;
 // Statics
 //
 SoftwareSerial *SoftwareSerial::active_object = 0;
+char SoftwareSerial::_receive_buffer[_SS_MAX_RX_BUFF]; 
+volatile uint8_t SoftwareSerial::_receive_buffer_tail = 0;
+volatile uint8_t SoftwareSerial::_receive_buffer_head = 0;
 
 //
 // Debugging
@@ -157,15 +158,15 @@ inline void DebugPulse(uint8_t pin, uint8_t count)
 //
 
 /* static */ 
-inline void SoftwareSerial::tunedDelay(uint16_t delay) {
+inline void SoftwareSerial::tunedDelay(uint16_t delay) { 
   uint8_t tmp=0;
 
-  asm volatile("sbiw %0, 0x01 \n\t"
+  asm volatile("sbiw    %0, 0x01 \n\t"
     "ldi %1, 0xFF \n\t"
     "cpi %A0, 0xFF \n\t"
     "cpc %B0, %1 \n\t"
     "brne .-10 \n\t"
-    : "=r" (delay), "+a" (tmp)
+    : "+r" (delay), "+a" (tmp)
     : "0" (delay)
     );
 }
@@ -179,7 +180,7 @@ bool SoftwareSerial::listen()
     _buffer_overflow = false;
     uint8_t oldSREG = SREG;
     cli();
-    _rx_buffer->head = _rx_buffer->tail = 0;
+    _receive_buffer_head = _receive_buffer_tail = 0;
     active_object = this;
     SREG = oldSREG;
     return true;
@@ -239,19 +240,19 @@ void SoftwareSerial::recv()
     if (_inverse_logic)
       d = ~d;
 
-     // if buffer full, set the overflow flag and return
-    if ((_rx_buffer->tail + 1) % _SS_MAX_RX_BUFF != _rx_buffer->head)
+    // if buffer full, set the overflow flag and return
+    if ((_receive_buffer_tail + 1) % _SS_MAX_RX_BUFF != _receive_buffer_head) 
     {
       // save new data in buffer: tail points to where byte goes
-    	_rx_buffer->buffer[_rx_buffer->tail] = d; // save new byte
-    	_rx_buffer->tail = (_rx_buffer->tail + 1) % _SS_MAX_RX_BUFF;
-    }
-    else
+      _receive_buffer[_receive_buffer_tail] = d; // save new byte
+      _receive_buffer_tail = (_receive_buffer_tail + 1) % _SS_MAX_RX_BUFF;
+    } 
+    else 
     {
 #if _DEBUG // for scope: pulse pin as overflow indictator
-        DebugPulse(_DEBUG_PIN1, 1);
+      DebugPulse(_DEBUG_PIN1, 1);
 #endif
-        _buffer_overflow = true;
+      _buffer_overflow = true;
     }
   }
 
@@ -328,7 +329,7 @@ ISR(PCINT3_vect)
 //
 // Constructor
 //
-SoftwareSerial::SoftwareSerial(ring_buffer *rx_buffer, uint8_t receivePin, uint8_t transmitPin,	bool inverse_logic /* = false */) :
+SoftwareSerial::SoftwareSerial(uint8_t receivePin, uint8_t transmitPin, bool inverse_logic /* = false */) : 
   _rx_delay_centering(0),
   _rx_delay_intrabit(0),
   _rx_delay_stopbit(0),
@@ -336,7 +337,6 @@ SoftwareSerial::SoftwareSerial(ring_buffer *rx_buffer, uint8_t receivePin, uint8
   _buffer_overflow(false),
   _inverse_logic(inverse_logic)
 {
-  _rx_buffer = rx_buffer;
   setTX(transmitPin);
   setRX(receivePin);
 }
@@ -423,12 +423,12 @@ int SoftwareSerial::read()
     return -1;
 
   // Empty buffer?
-  if (_rx_buffer->head == _rx_buffer->tail)
+  if (_receive_buffer_head == _receive_buffer_tail)
     return -1;
 
   // Read from "head"
-  uint8_t d = _rx_buffer->buffer[_rx_buffer->head]; // grab next byte
-  _rx_buffer->head = (_rx_buffer->head + 1) % _SS_MAX_RX_BUFF;
+  uint8_t d = _receive_buffer[_receive_buffer_head]; // grab next byte
+  _receive_buffer_head = (_receive_buffer_head + 1) % _SS_MAX_RX_BUFF;
   return d;
 }
 
@@ -437,7 +437,7 @@ int SoftwareSerial::available()
   if (!isListening())
     return 0;
 
-  return (_rx_buffer->tail + _SS_MAX_RX_BUFF - _rx_buffer->head) % _SS_MAX_RX_BUFF;
+  return (_receive_buffer_tail + _SS_MAX_RX_BUFF - _receive_buffer_head) % _SS_MAX_RX_BUFF;
 }
 
 size_t SoftwareSerial::write(uint8_t b)
@@ -497,7 +497,7 @@ void SoftwareSerial::flush()
 
   uint8_t oldSREG = SREG;
   cli();
-  _rx_buffer->head = _rx_buffer->tail = 0;
+  _receive_buffer_head = _receive_buffer_tail = 0;
   SREG = oldSREG;
 }
 
@@ -507,9 +507,9 @@ int SoftwareSerial::peek()
     return -1;
 
   // Empty buffer?
-  if (_rx_buffer->head == _rx_buffer->tail)
+  if (_receive_buffer_head == _receive_buffer_tail)
     return -1;
 
   // Read from "head"
-  return _rx_buffer->buffer[_rx_buffer->head];
+  return _receive_buffer[_receive_buffer_head];
 }
