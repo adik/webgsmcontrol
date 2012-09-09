@@ -20,8 +20,12 @@ ring_buffer rx_buffer_gsm = { { 0 }, 0, 0};
 
 //SoftwareSerial mySerial =  SoftwareSerial(rxPin, txPin);
 //SoftwareSerial mySerial(&rx_buffer_gsm, 2, 3);  //rx, tx
+//#ifdef DEBUG_PRINT
 SoftwareSerial mySerial(&rx_buffer_gsm, 2, 3);  //rx, tx
+//#else
 //HardwareSerial &mySerial = Serial;
+//#endif
+
 
 /**********************************************************
 	DEBUG
@@ -74,24 +78,24 @@ last_debug_print: 0 - this is not last debug info, we will
 void GSM::DebugPrint(const char *string_to_print, byte last_debug_print)
 {
   if (last_debug_print) {
-    Serial.println(string_to_print);
-    SendATCmdWaitResp("AT", 500, 50, "OK", 1);
+    Serial.print(string_to_print);
+    SendATCmdWaitResp(500, 100, "OK", 5, PSTR("AT"));
   }
   else Serial.print(string_to_print);
 }
 void GSM::DebugPrint(__FlashStringHelper *string_to_print, byte last_debug_print)
 {
   if (last_debug_print) {
-    Serial.println(string_to_print);
-    SendATCmdWaitResp("AT", 500, 50, "OK", 1);
+    Serial.print(string_to_print);
+    SendATCmdWaitResp(500, 100, "OK", 5, PSTR("AT"));
   }
   else Serial.print(string_to_print);
 }
 void GSM::DebugPrint(int number_to_print, byte last_debug_print)
 {
-  Serial.println(number_to_print);
+  Serial.print(number_to_print);
   if (last_debug_print) {
-    SendATCmdWaitResp("AT", 500, 50, "OK", 1);
+	SendATCmdWaitResp(500, 100, "OK", 5, PSTR("AT"));
   }
 }
 #endif
@@ -125,52 +129,9 @@ GSM::GSM(void)
 
   // initialization of speaker volume
   last_speaker_volume = 0; 
-
 }
 
-/**********************************************************
-  Initialization of GSM module serial line
-**********************************************************/
-/*
-void GSM::InitSerLine(long baud_rate)
-{
-  // open the Serial line for the communication
-  mySerial.begin(baud_rate);
-  //SendATCmdWaitResp("AT+IPR=9600", 500, 50, "OK", 5);
-  for (int i=1;i<7;i++){
-		switch (i) {
-		case 1:
-		  mySerial.begin(4800);
-		  break;
-		case 2:
-		  mySerial.begin(9600);
-		  break;
-		case 3:
-		  mySerial.begin(19200);
-		  break;
-		case 4:
-		  mySerial.begin(38400);
-		  break;
-		case 5:
-		  mySerial.begin(57600);
-		  break;
-		case 6:
-		  mySerial.begin(115200);
-		  break;
-		  // if nothing else matches, do the default
-		  // default is optional
-		}
-	  mySerial.write("AT+IPR=");
-	  mySerial.write(baud_rate);    
-	  mySerial.write("\r"); // send <CR>
-  }
-  
-  // communication line is not used yet = free
-  SetCommLineStatus(CLS_FREE);
-  // pointer is initialized to the first item of comm. buffer
-  p_comm_buf = &comm_buf[0];
-}
-*/
+
 /**********************************************************
   Initializes receiving process
 
@@ -216,25 +177,10 @@ byte GSM::IsRxFinished(void)
     // Reception is not started yet - check tmout
     if (!mySerial.available()) {
       // still no character received => check timeout
-	/*
-	#ifdef DEBUG_GSMRX
 
-			DebugPrint("\r\nDEBUG: reception timeout", 0);			
-			Serial.print((unsigned long)(millis() - prev_time));	
-			DebugPrint("\r\nDEBUG: start_reception_tmout\r\n", 0);			
-			Serial.print(start_reception_tmout);	
-
-
-	#endif
-	*/
       if ((unsigned long)(millis() - prev_time) >= start_reception_tmout) {
         // timeout elapsed => GSM module didn't start with response
         // so communication is takes as finished
-		/*
-			#ifdef DEBUG_GSMRX		
-				DebugPrint("\r\nDEBUG: RECEPTION TIMEOUT", 0);	
-			#endif
-		*/
         comm_buf[comm_buf_len] = 0x00;
         ret_val = RX_TMOUT_ERR;
       }
@@ -254,8 +200,8 @@ byte GSM::IsRxFinished(void)
     num_of_bytes = mySerial.available();
       
     // read all received bytes      
-    while (num_of_bytes) {
-      num_of_bytes--;
+    while (num_of_bytes--) {
+
       c = mySerial.read();
 
       // if there are some received bytes postpone the timeout
@@ -266,16 +212,11 @@ byte GSM::IsRxFinished(void)
         // move available bytes from circular buffer 
         // to the rx buffer
         *p_comm_buf = c;
-
         p_comm_buf++;
         comm_buf_len++;
         comm_buf[comm_buf_len] = 0x00;  // and finish currently received characters
                                         // so after each character we have
                                         // valid string finished by the 0x00
-      } else {
-    	  //ret_val = RX_FINISHED;
-    	  //goto finish;
-    	  //break;
       }
     }
 
@@ -442,11 +383,17 @@ void GSM::send(const prog_char *fmt, ...) {
 
 **********************************************************/
 void GSM::vprintf_P(Stream &stream, const prog_char *fmt, va_list args ) {
-	char 			*p, c, c2, zero;
-	uint8_t 		i8;
+	char 		*p, c, c2, zero;
+	uint8_t 	i8;
 
 	while ((c = pgm_read_byte(fmt))) {
-		if (c == '%') {
+
+		if (c != '%') {
+			//Serial.write(c);
+			//write to buffer
+			stream.write(c);
+		}
+		else {
 			fmt++;
 			c2 = pgm_read_byte(fmt);
 			zero = (char)((c2 == '0') ? '0' : ' ');
@@ -459,26 +406,23 @@ void GSM::vprintf_P(Stream &stream, const prog_char *fmt, va_list args ) {
 						stream.write(*p++);
 					} //
 				}
-				fmt++;
-				continue;
+				break;
 			case 'p':
 				p = va_arg(args, prog_char *);
 				// write to
 				if (p != NULL) {
-					while (1) {
-					    unsigned char c = pgm_read_byte(p++);
-					    if (c == 0) break;
-						stream.write(c);
+					for (;;) {
+					    unsigned char c3 = pgm_read_byte(p++);
+					    if (c3 == 0) break;
+						stream.write(c3);
 					} //
 				}
-				fmt++;
-				continue;
+				break;
 			case 'd':
 				i8 = (uint8_t) va_arg(args, int);
 				// write to
 				stream.write(i8);
-				fmt++;
-				continue;
+				break;
 			default:
 				//write to
 				stream.write('%');
@@ -487,18 +431,64 @@ void GSM::vprintf_P(Stream &stream, const prog_char *fmt, va_list args ) {
 				//Serial.write(c2);
 				break;
 			}
-			fmt++;
-		} else {
-			//write to buffer
-			stream.write(c);
-			//Serial.write(c);
-			fmt++;
 		}
+		// read next
+		fmt++;
 	}
 }
 
 /**********************************************************
+ *
+ **********************************************************/
+void GSM::WaitUntil_P(Stream &stream, const prog_char *target) {
 
+	const prog_char 	*p;
+	int 				c, d;
+	unsigned long 		prev_time;
+
+	p = target;
+	prev_time = millis();
+
+	for (;;) {
+		c = stream.read();
+
+		if (millis() - prev_time > 6000 ) {
+			//Serial.println("Timeout");
+			return ;
+		}
+
+		//
+		if (c < 0) {
+			delay(100);
+			continue;
+		}
+
+		// if there are some received bytes postpone the timeout
+		prev_time = millis();
+
+		d = pgm_read_byte(p);
+		if (c == d) {
+			++p;
+		}
+		else {
+			// if find we find the latest char of a target string
+			if (d == '\0')
+				return;
+
+			// reset index if any char does not match
+			p = target;
+		}
+	}
+	return;
+}
+
+/**********************************************************
+Method sends AT command and waits for response
+
+return:
+      AT_RESP_ERR_NO_RESP = -1,   // no response received
+      AT_RESP_ERR_DIF_RESP = 0,   // response_string is different from the response
+      AT_RESP_OK = 1,             // response_string was included in the response
 **********************************************************/
 char GSM::SendATCmdWaitResp(uint16_t start_comm_tmout,
 		uint16_t max_interchar_tmout, char const *response_string,
@@ -506,16 +496,9 @@ char GSM::SendATCmdWaitResp(uint16_t start_comm_tmout,
 {
 	va_list args;
 	byte	status;
-	char 	ret_val = AT_RESP_ERR_NO_RESP;
-	byte 	i;
+	byte 	ret_val = AT_RESP_ERR_NO_RESP;
 
-	//SetCommLineStatus(CLS_ATCMD);
-
-	for (i = 0; i < no_of_attempts; i++) {
-		// delay 500 msec. before sending next repeated AT command
-		// so if we have no_of_attempts=1 tmout will not occurred
-		if (i > 0)
-			delay(500);
+	while (no_of_attempts--) {
 
 		va_start(args, fmt);
 		vprintf_P(mySerial,fmt, args); mySerial.write('\r');
@@ -537,60 +520,15 @@ char GSM::SendATCmdWaitResp(uint16_t start_comm_tmout,
 			// --------------------
 			ret_val = AT_RESP_ERR_NO_RESP;
 		}
+
+		// delay 500 msec. before sending next repeated AT command
+		// so if we have no_of_attempts=1 tmout will not occurred
+		delay(500);
 	}
 
 	//SetCommLineStatus(CLS_FREE);
 	return (ret_val);
 }
-
-
-/**********************************************************
-Method sends AT command and waits for response
-
-return: 
-      AT_RESP_ERR_NO_RESP = -1,   // no response received
-      AT_RESP_ERR_DIF_RESP = 0,   // response_string is different from the response
-      AT_RESP_OK = 1,             // response_string was included in the response
-**********************************************************/
-char GSM::SendATCmdWaitResp(char const *AT_cmd_string,
-                uint16_t start_comm_tmout, uint16_t max_interchar_tmout,
-                char const *response_string,
-                byte no_of_attempts)
-{
-  byte status;
-  char ret_val = AT_RESP_ERR_NO_RESP;
-  byte i;
-
-  //SetCommLineStatus(CLS_ATCMD);
-
-  for (i = 0; i < no_of_attempts; i++) {
-    // delay 500 msec. before sending next repeated AT command 
-    // so if we have no_of_attempts=1 tmout will not occurred
-    if (i > 0) delay(500); 
-
-    mySerial.println(AT_cmd_string);
-    status = WaitResp(start_comm_tmout, max_interchar_tmout); 
-    if (status == RX_FINISHED) {
-      // something was received but what was received?
-      // ---------------------------------------------
-      if(IsStringReceived(response_string)) {
-        ret_val = AT_RESP_OK;      
-        break;  // response is OK => finish
-      }
-      else ret_val = AT_RESP_ERR_DIF_RESP;
-    }
-    else {
-      // nothing was received
-      // --------------------
-      ret_val = AT_RESP_ERR_NO_RESP;
-    }
-    
-  }
-
-  //SetCommLineStatus(CLS_FREE);
-  return (ret_val);
-}
-
 
 /**********************************************************
 Methods return the state of corresponding
@@ -630,7 +568,7 @@ void GSM::TurnOn(long baud_rate)
 	DebugPrint(baud_rate, 0);
 #endif
   
-  if (AT_RESP_ERR_NO_RESP == SendATCmdWaitResp("AT", 500, 100, "OK", 5)) {		//check power
+  if (AT_RESP_ERR_NO_RESP == SendATCmdWaitResp(500, 100, "OK", 5, PSTR("AT"))) {		//check power
     // there is no response => turn on the module
   
 		#ifdef DEBUG_PRINT
@@ -654,7 +592,7 @@ void GSM::TurnOn(long baud_rate)
 			DebugPrint(F("DEBUG: GSM module is on\r\n"), 0);
 		#endif
 	}
-	if (AT_RESP_ERR_DIF_RESP == SendATCmdWaitResp("AT", 500, 100, "OK", 5)) {		//check OK
+	if (AT_RESP_ERR_DIF_RESP == SendATCmdWaitResp(500, 100, "OK", 5, PSTR("AT"))) {		//check OK
 			
 		#ifdef DEBUG_PRINT
 			// parameter 0 - because module is off so it is not necessary 
@@ -731,7 +669,7 @@ void GSM::TurnOn(long baud_rate)
 				  mySerial.write('\r'); // send <CR>
 				  mySerial.begin(baud_rate);
 				  delay(500);
-				  if (AT_RESP_OK == SendATCmdWaitResp("AT", 500, 100, "OK", 5)){
+				  if (AT_RESP_OK == SendATCmdWaitResp(500, 100, "OK", 5, PSTR("AT"))){
 						#ifdef DEBUG_PRINT
 							// parameter 0 - because module is off so it is not necessary 
 							// to send finish AT<CR> here
@@ -749,7 +687,7 @@ void GSM::TurnOn(long baud_rate)
 			  p_comm_buf = &comm_buf[0];
   
   
-		if (AT_RESP_ERR_NO_RESP == SendATCmdWaitResp("AT", 500, 50, "OK", 5)) {
+		if (AT_RESP_ERR_NO_RESP == SendATCmdWaitResp(500, 100, "OK", 5, PSTR("AT"))) {
 			#ifdef DEBUG_PRINT
 				// parameter 0 - because module is off so it is not necessary 
 				// to send finish AT<CR> here

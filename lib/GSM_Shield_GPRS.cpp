@@ -7,53 +7,28 @@
  *
  *      https://github.com/shklovich/Picon2GSA3/blob/50749272628da61d967e7053455c0ae3c3270b7f/src/modem.c
  */
-
 #include <GSM_Shield_GPRS.h>
 #include <GSM_Shield.h>
 
-#define GPRS_DATA_RECEIVE_TIMEOUT  1000
 
+static gprs_ring_buffer gprs_rx;
 
-gprs_ring_buffer gprs_rx;
 
 /**********************************************************
  Class constructor
 **********************************************************/
 GPRS::GPRS(void) : GSM(), gprs_state(PDP_DEACT) { }
 
-
 /**********************************************************
 
 **********************************************************/
 void GPRS::handleCommunication()
 {
-
-	//SendATCmdWaitResp(1000, 100, "", 1, PSTR("AT+CIPSPRT=0"));
-	//SendATCmdWaitResp(1000, 100, "", 1, PSTR("AT+CIPATS=1,2"));
-
-
 	while (RX_packet()) { // Receive data
-
-		// Start a data send session
-		//if (AT_RESP_OK == SendATCmdWaitResp(1000, 100, ">", 1, PSTR("AT+CIPSEND"))) {
-
-			//SendATCmdWaitResp(1000, 100, ">", 1, PSTR("AT+CIPSEND"));
-
-			// process incoming packet
-			while (gprs_rx.head < gprs_rx.tail) {
-				_onReceiveHandler(*gprs_rx.head++);
-			}
-
-			// finish and send packet
-			//mySerial.write(0x1A);
-		//}
-		//else {
-		//		break;
-		//}
+		while (gprs_rx.head < gprs_rx.tail) {
+			_onReceiveHandler(*gprs_rx.head++);
+		}
 	}
-
-	//SendATCmdWaitResp(1000, 100, "", 1, PSTR("AT+CIPSPRT=1"));
-	//SendATCmdWaitResp(1000, 100, "", 1, PSTR("AT+CIPATS=0"));
 }
 
 
@@ -85,9 +60,11 @@ byte GPRS::RX_packet() {
 	req_state = SEND_PULL_HEADER;
 	prev_time = millis();
 
-	while (1) {
+	for (;;) {
+		// FIXIT:
 		// break if timeout
 		if (millis() - prev_time > GPRS_DATA_RECEIVE_TIMEOUT ) {
+			//Serial.println("Timeout");
 			return 0;
 		}
 
@@ -96,7 +73,6 @@ byte GPRS::RX_packet() {
 			mySerial.flush();
 			vprintf_P(mySerial, PSTR("AT+CIPRXGET=2,230")); // TODO: calculate buffer size
 			mySerial.write('\r');
-
 			req_state = REQ_HEADER_PARSE;
 			read_byte_count = 0;
 			recv_data_size = 0;
@@ -107,7 +83,10 @@ byte GPRS::RX_packet() {
 
 		//
 		c = mySerial.read();
-		if (c < 0) continue;
+		if (c < 0) {
+			delay(100);
+			continue;
+		}
 		//Serial.write(c);
 
 		// if there are some received bytes postpone the timeout
@@ -136,7 +115,6 @@ byte GPRS::RX_packet() {
 				else {
 					pt = &left_data_size;
 				}
-
 			}
 			break;
 
@@ -168,6 +146,8 @@ byte GPRS::RX_packet() {
 **********************************************************/
 void GPRS::fetchState() {
 
+	// FIXIT:
+	delay(200); mySerial.flush();
 	vprintf_P(mySerial, PSTR("AT+CIPSTATUS\r"));
 
 	// 5 sec. for initial comm tmout
@@ -253,20 +233,8 @@ void GPRS::TCP_Send(const prog_char *data, ... ) {
 		vprintf_P(mySerial, data, args); mySerial.write(0x1A);
 		va_end(args);
 
-		// waiting for receive +CIPRXGET:1
-		prev_time = millis();
-		do {
-			// break if timeout
-			if (millis() - prev_time > 6000) return;
-			state = WaitResp(1000, 100, "+CIPRXGET:1\r\n");
-
-		} while
-			(state != RX_FINISHED_STR_RECV);
-
-		// Get gprs data
-		if ( RX_FINISHED_STR_RECV == state ) {
-			handleCommunication();
-		}
+		WaitUntil_P(mySerial, PSTR("SEND OK"));
+		//WaitResp(1000,50);
 	}
 }
 
@@ -354,6 +322,12 @@ void GPRS::GPRS_attach() {
 		 * SEND OK.
 		 */
 		SendATCmdWaitResp(1000, 150, "OK", 1, PSTR("AT+CIPQSEND=0"));
+
+
+		/*
+		 * prompt '>' char when received AT+CIPSEND command
+		 */
+		SendATCmdWaitResp(1000, 100, "", 1, PSTR("AT+CIPSPRT=1"));
 	}
 
 finish:

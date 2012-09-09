@@ -6,8 +6,9 @@
  */
 #ifndef __GSM_Shield_GPRS
 #define __GSM_Shield_GPRS
-
 #include <GSM_Shield.h>
+
+#define GPRS_DATA_RECEIVE_TIMEOUT  1000
 
 #define GPRS_DATA_BUFFER_SIZE 256
 
@@ -16,9 +17,6 @@ struct gprs_ring_buffer {
   volatile byte *head;
   volatile byte *tail;
 };
-
-extern gprs_ring_buffer gprs_rx;
-
 
 enum gprs_state_enum {
 	IP_BUSY = -1,
@@ -34,7 +32,6 @@ enum gprs_state_enum {
 
 	PDP_DEACT
 };
-
 
 class GPRS : public GSM
 {
