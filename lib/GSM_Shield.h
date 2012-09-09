@@ -7,9 +7,9 @@
 #ifndef __GSM_Shield
 #define __GSM_Shield
 
-//#ifdef DEBUG_PRINT
+#ifdef DEBUG_PRINT
 #include <SoftwareSerial.h>
-//#endif
+#endif
 
 #include <Arduino.h>
 
@@ -65,11 +65,11 @@
 
 
 
-//#ifdef DEBUG_PRINT
+#ifdef DEBUG_PRINT
 extern SoftwareSerial mySerial;
-//#else
-//extern HardwareSerial &mySerial;
-//#endif
+#else
+extern HardwareSerial &mySerial;
+#endif
 
 // SMS type 
 // use by method IsSMSPresent()

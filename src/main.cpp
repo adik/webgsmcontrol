@@ -213,7 +213,8 @@ inline void setup() {
 	Serial.begin(38400);
 #endif
 	//gsm.InitSerLine(9600); //initialize serial 1
-	gsm.TurnOn(9600); //module power on
+	gsm.TurnOn(38400); //module power on
+	//gsm.TurnOn(38400); //module power on
 	//gsm.TurnOn(19200); //module power on
 	//gsm.InitSerLine(9600); //initialize serial 1
 	gsm.InitParam(PARAM_SET_0); //configure the module
@@ -262,7 +263,6 @@ inline void loop() {
 		onSerialReceive(_serial_buffer);
 	}
 #endif
-
 	//delay(6000);
 }
 
