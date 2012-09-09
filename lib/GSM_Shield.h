@@ -7,7 +7,10 @@
 #ifndef __GSM_Shield
 #define __GSM_Shield
 
+//#ifdef DEBUG_PRINT
 #include <SoftwareSerial.h>
+//#endif
+
 #include <Arduino.h>
 
 #define GSM_LIB_VERSION 202 // library version X.YY (e.g. 1.00)
@@ -60,8 +63,13 @@
 #define STATUS_REGISTERED           2
 #define STATUS_USER_BUTTON_ENABLE   4
 
-//extern HardwareSerial &mySerial;
+
+
+//#ifdef DEBUG_PRINT
 extern SoftwareSerial mySerial;
+//#else
+//extern HardwareSerial &mySerial;
+//#endif
 
 // SMS type 
 // use by method IsSMSPresent()
@@ -161,9 +169,9 @@ class GSM
     // serial line initialization
     //void InitSerLine(long baud_rate);
     // set comm. line status
-    inline void SetCommLineStatus(byte new_status) {comm_line_status = new_status;};
+    //inline void SetCommLineStatus(byte new_status) {comm_line_status = new_status;};
     // get comm. line status
-    inline byte GetCommLineStatus(void) {return comm_line_status;};
+    //inline byte GetCommLineStatus(void) {return comm_line_status;};
 
 
     // turns on GSM module
@@ -227,12 +235,15 @@ class GSM
     char ComparePhoneNumber(byte position, char *phone_number);
 
 
-    // routines regarding communication with the GSM module
+    //
+    void WaitUntil_P(Stream &stream, const prog_char *target);
 
     void send(const prog_char *fmt, ...);
 	void vprintf_P(Stream &stream, const prog_char *fmt, ...);
 	void vprintf_P(Stream &stream, const prog_char *fmt, va_list args );
 
+
+    // routines regarding communication with the GSM module
     void RxInit(uint16_t start_comm_tmout, uint16_t max_interchar_tmout);
     byte IsRxFinished(void);
     byte IsStringReceived(char const *compare_string);

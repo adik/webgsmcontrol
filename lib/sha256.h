@@ -38,6 +38,6 @@ class Sha256Class : public Print
     uint8_t innerHash[HASH_LENGTH];
 };
 
-extern Sha256Class Sha256;
+//extern Sha256Class Sha256;
 
 #endif

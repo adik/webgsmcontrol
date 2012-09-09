@@ -26,15 +26,13 @@ char _serial_buffer[SERIAL_BUFF_SIZE+1];
 // definition of instance of GSM class
 GPRS gsm;
 
-// encryption
-Sha256Class Sha256;
 
 // declare parser variable
-json_parser_t json_parser = {};
+static json_parser_t json_parser = {};
 
 
 const prog_char HTTP_connectWS[] PROGMEM = {
-			"GET %p HTTP/1.1\r\n"
+			"GET /app/%p?client=js&version=1.9.0 HTTP/1.1\r\n"
 			"Upgrade: WebSocket\r\n"
 			"Connection: Upgrade\r\n"
 			"Host: %p\r\n"
@@ -43,34 +41,35 @@ const prog_char HTTP_connectWS[] PROGMEM = {
 
 
 
+static const prog_char  Pusher_Key[] PROGMEM= {"8185ce71534c69c42b72"};
+static const uint8_t Pusher_Secret[]= {"c30a8df113dd52dc64e4"};
 
-const uint8_t Pusher_Key[] = "8185ce71534c69c42b72";
-const uint8_t Pusher_Secret[]= "c30a8df113dd52dc64e4";
-
-char auth_token[65];
+static char auth_token[65];
 
 /**********************************************************
 
 **********************************************************/
+void generate_auth(char *str) {
 
-
-
-inline void generate_auth(char *str) {
 	uint8_t *hash;
 	char 	*ap;
 
-	Sha256.initHmac(Pusher_Secret, 20);
-	Sha256.print(str);
+	// encryption
+	Sha256Class *Sha256 = new Sha256Class();
 
-	hash = Sha256.resultHmac();
+	Sha256->initHmac(Pusher_Secret, 20);
+	Sha256->print(str);
+
+	hash = Sha256->resultHmac();
 
 	ap = &auth_token[0];
 
-	for (int i=0; i<HASH_LENGTH; i++) {
+	for (uint8_t i=0; i<HASH_LENGTH; i++) {
 			*ap++ = "0123456789abcdef"[hash[i]>>4];
 			*ap++ = "0123456789abcdef"[hash[i]&0xf];
 	}
 	*ap='\0';
+	delete Sha256;
 }
 
 /**********************************************************
@@ -78,22 +77,28 @@ inline void generate_auth(char *str) {
 **********************************************************/
 
 // declare state
-volatile enum recv_state_enum {
+enum recv_state_enum {
 	GET_HEADER = 0,
 	WAIT_HEADER_END = 1,
 	HEADER_RECEIVED = 3
-} recv_state;
+};
+static byte recv_state;
 
+inline byte get_recv_state() { return recv_state; }
+inline void set_recv_state(byte state) { recv_state = state; }
 
 void recv_data(byte chr) {
-
 	// skip header
-	switch (recv_state) {
+	switch (get_recv_state()) {
+	case HEADER_RECEIVED:
+		goto process_data;
+		break;
+
 	case GET_HEADER:
 		if (chr == '\r')
 			goto process_header;
 		if (chr == '\n')
-			recv_state = WAIT_HEADER_END;
+			set_recv_state(WAIT_HEADER_END);
 		goto process_header;
 		break;
 
@@ -101,28 +106,26 @@ void recv_data(byte chr) {
 		if (chr == '\r')
 			goto process_header;
 		if (chr == '\n')
-			recv_state = HEADER_RECEIVED;
+			set_recv_state(HEADER_RECEIVED);
 		else
-			recv_state = GET_HEADER;
+			set_recv_state(GET_HEADER);
 
 		goto process_header;
-		break;
-
-	case HEADER_RECEIVED:
 		break;
 	}
 
 process_data:
 
 #ifdef DEBUG_PRINT
-	Serial.write(chr);
+	//Serial.write(chr);
 #endif
 
-	// parse received json stream
+// parse received json stream
 	if ( json_parse(&json_parser, chr) ) {
-		// get event
+
 		char *event, *data;
 
+		// get event
 		event = json_get_tag_value(&json_parser, "event");
 
 		if (event) {
@@ -137,30 +140,28 @@ process_data:
 					strcat(tmp, channel);
 
 					generate_auth(tmp);
-					gsm.SendATCmdWaitResp(1000, 100, ">", 1, PSTR("AT+CIPSEND"));
-					//gsm.vprintf_P(mySerial, PSTR("AT+CIPSEND\r"));
-					gsm.vprintf_P(mySerial, PSTR("%d{\"event\":\"%p\",\"data\":{\"channel\":\"private-cmd\",\"auth\":\"%s:%s\"}}%d"),
-			        		0, PSTR("pusher:subscribe"), Pusher_Key, auth_token, 255) ;
-					mySerial.write(0x1a);
+
+					gsm.TCP_Send(
+							PSTR("%d{\"event\":\"%p\",\"data\":{\"channel\":\"private-cmd\",\"auth\":\"%p:%s\"}}%d"),
+			        		0,
+			        		PSTR("pusher:subscribe"),
+			        		Pusher_Key,
+			        		auth_token,
+			        		255) ;
 
 					//Serial.println(data);
-					//Serial.println(channel);
 					//Serial.println(auth_token);
 					//Serial.println((char*)Pusher_Key);
 					//Serial.println((char*)Pusher_Key);
-
 				}
 				free(data);
 			}
 			else if (strstr(event, "pusher") == 0) {
 
-				gsm.SendATCmdWaitResp(1000, 100, ">", 1, PSTR("AT+CIPSEND"));
-				//gsm.vprintf_P(mySerial, PSTR("AT+CIPSEND\r"));
-				gsm.vprintf_P(mySerial,
+				gsm.TCP_Send(
 					PSTR("%d{\"event\":\"client-responce\",\"data\":\"pong\",\"channel\":\"private-cmd\"}%d"),
 					0,
 					255);
-				mySerial.write(0x1a);
 			}
 		}
 
@@ -194,24 +195,10 @@ void connect_ws() {
 	gsm.TCP_Connect(F("ws.pusherapp.com"));
 
 	if (CONNECT_OK == gsm.getState()) {
-
-		recv_state = GET_HEADER;
-
+		set_recv_state(GET_HEADER);
 		// send handshake
-		gsm.TCP_Send(HTTP_connectWS,
-				PSTR("/app/8185ce71534c69c42b72?client=js&version=1.9.0"),
-				PSTR("ws.pusherapp.com"));
 
-		// ensure
-		recv_state = HEADER_RECEIVED;
-
-		// subscribe a channel
-		//gsm.TCP_Send(HTTP_WSSubscribe, 0, 255);
-		/*
-        gsm.TCP_Send(PSTR("%d{\"event\":\"%p\",\"data\":{\"channel\":\"private-cmd\",\"auth\":\"%s:%s\"}}%d"),
-        		0, PSTR("pusher:subscribe"), Pusher_Key, auth_token, 255) ;
-        */
-
+		gsm.TCP_Send( HTTP_connectWS, Pusher_Key, PSTR("ws.pusherapp.com"));
 	}
 }
 
@@ -220,12 +207,10 @@ void connect_ws() {
 /**********************************************************
 
 **********************************************************/
-
-
 inline void setup() {
 #ifdef DEBUG_PRINT
 	//Serial.begin(38400);
-	Serial.begin(9600);
+	Serial.begin(38400);
 #endif
 	//gsm.InitSerLine(9600); //initialize serial 1
 	gsm.TurnOn(9600); //module power on
@@ -236,17 +221,15 @@ inline void setup() {
 	//
 	json_init(&json_parser);
 	gsm.setRecvHandler(recv_data);
-
-
 }
 
 
 /**********************************************************
 
 **********************************************************/
-inline void loop() {
+static unsigned long last_fetch_time;
 
-	static unsigned long last_fetch_time;
+inline void loop() {
 
 	if ((unsigned long)(millis() - last_fetch_time) >= 10000) {
 		gsm.fetchState();
@@ -258,10 +241,7 @@ inline void loop() {
 		break;
 
 	case CONNECT_OK:
-		//if ( CLS_DATA == gsm.GetCommLineStatus()) {
 		gsm.handleCommunication();
-		//};
-		delay(1000);
 		break;
 
 	case TCP_CLOSED:
@@ -271,9 +251,7 @@ inline void loop() {
 
 	default:
 		gsm.GPRS_detach();
-		delay(3000);
 		gsm.GPRS_attach();
-		delay(3000);
 		connect_ws();
 		break;
 	}
@@ -327,8 +305,8 @@ inline void onSerialReceive(char *buffer) {
 	}
 }
 inline int8_t SerialProcessCommand(char const *buffer) {
-	//Serial.println(buffer);
-	gsm.SendATCmdWaitResp(buffer, 1000, 50, "", 1);
+	Serial.print(F("GetCommand\r\n"));
+	gsm.SendATCmdWaitResp(1000, 50, "", 1, PSTR("%s"), buffer);
 	return 1;
 }
 #endif
