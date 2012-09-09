@@ -110,8 +110,8 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
+						<entry excluding="lib/disabled|lib/GSM_Shield_Restricted.cpp|lib/sha1.cpp|lib/GSM_Shield_SAPBR.cpp|lib/GSM_Shield_SAPBR.h|lib.ex|arduino-core|src|core" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
-						<entry excluding="lib/SoftwareSerial.cpp|lib/disabled|lib/GSM_Shield_Restricted.cpp|lib/sha1.cpp|lib/GSM_Shield_SAPBR.cpp|lib/GSM_Shield_SAPBR.h|lib.ex|arduino-core|src|core" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -163,6 +163,7 @@
 								</option>
 								<option id="de.innot.avreclipse.compiler.option.def.40186408" name="Define Syms (-D)" superClass="de.innot.avreclipse.compiler.option.def" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="ARDUINO=100"/>
+									<listOptionValue builtIn="false" value="F_CPU=16000000"/>
 									<listOptionValue builtIn="false" value="DEBUG_PRINT"/>
 									<listOptionValue builtIn="false" value="DEBUG_GSMRX"/>
 									<listOptionValue builtIn="false" value="DEBUG_ATCOMMANDS"/>
@@ -186,6 +187,7 @@
 								</option>
 								<option id="de.innot.avreclipse.cppcompiler.option.def.2134477537" name="Define Syms (-D)" superClass="de.innot.avreclipse.cppcompiler.option.def" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="ARDUINO=100"/>
+									<listOptionValue builtIn="false" value="F_CPU=16000000"/>
 									<listOptionValue builtIn="false" value="DEBUG_PRINT"/>
 									<listOptionValue builtIn="false" value="DEBUG_GSMRX"/>
 									<listOptionValue builtIn="false" value="DEBUG_ATCOMMANDS"/>
