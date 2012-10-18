@@ -7,10 +7,7 @@
 #ifndef __GSM_Shield
 #define __GSM_Shield
 
-#ifdef DEBUG_PRINT
 #include <SoftwareSerial.h>
-#endif
-
 #include <Arduino.h>
 
 #define GSM_LIB_VERSION 202 // library version X.YY (e.g. 1.00)
@@ -64,12 +61,7 @@
 #define STATUS_USER_BUTTON_ENABLE   4
 
 
-
-#ifdef DEBUG_PRINT
 extern SoftwareSerial mySerial;
-#else
-extern HardwareSerial &mySerial;
-#endif
 
 // SMS type 
 // use by method IsSMSPresent()

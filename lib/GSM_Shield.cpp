@@ -5,9 +5,7 @@
  www.hwkitchen.com
 */
 #include <Arduino.h>
-#ifdef DEBUG_PRINT
 #include <SoftwareSerial.h>
-#endif
 #include "GSM_Shield.h"
 
 extern "C" {
@@ -19,11 +17,7 @@ extern "C" {
 
 //SoftwareSerial mySerial =  SoftwareSerial(rxPin, txPin);
 //SoftwareSerial mySerial(&rx_buffer_gsm, 2, 3);  //rx, tx
-#ifdef DEBUG_PRINT
 SoftwareSerial mySerial(2, 3);  //rx, tx
-#else
-HardwareSerial &mySerial = Serial;
-#endif
 
 
 /**********************************************************
@@ -564,140 +558,125 @@ void GSM::TurnOn(long baud_rate)
     DebugPrint(F("DEBUG: baud "), 0);
 	//DebugPrint(baud_rate, 0);
 #endif
-  
-  if (AT_RESP_ERR_NO_RESP == SendATCmdWaitResp(500, 100, "OK", 5, PSTR("AT"))) {		//check power
-    // there is no response => turn on the module
-  
-		#ifdef DEBUG_PRINT
-			// parameter 0 - because module is off so it is not necessary 
-			// to send finish AT<CR> here
-			DebugPrint(F("DEBUG: GSM module is off\r\n"), 0);
-			DebugPrint(F("DEBUG: start the module\r\n"), 0);
-		#endif
-		
+
+    // init
+	for (;;) {
+
 		// generate turn on pulse
+		delay(2000);
 		digitalWrite(GSM_ON, HIGH);
 		delay(1200);
 		digitalWrite(GSM_ON, LOW);
 		delay(5000);
-	}
-	else
-	{
-		#ifdef DEBUG_PRINT
+
+		//check power there is no response
+		if (AT_RESP_ERR_NO_RESP	== SendATCmdWaitResp(500, 100, "OK", 5, PSTR("AT"))) {
+			#ifdef DEBUG_PRINT
+			// parameter 0 - because module is off so it is not necessary
+			// to send finish AT<CR> here
+			DebugPrint(F("DEBUG: GSM module is off\r\n"), 0);
+			DebugPrint(F("DEBUG: start the module\r\n"), 0);
+			#endif
+
+		} else {
+			#ifdef DEBUG_PRINT
 			// parameter 0 - because module is off so it is not necessary 
 			// to send finish AT<CR> here
 			DebugPrint(F("DEBUG: GSM module is on\r\n"), 0);
-		#endif
+			#endif
+
+			// break init cycle
+			break;
+		}
 	}
+
 	if (AT_RESP_ERR_DIF_RESP == SendATCmdWaitResp(500, 100, "OK", 5, PSTR("AT"))) {		//check OK
 			
 		#ifdef DEBUG_PRINT
-			// parameter 0 - because module is off so it is not necessary 
-			// to send finish AT<CR> here
-			DebugPrint(F("DEBUG: the baud is not ok\r\n"), 0);
+		DebugPrint(F("DEBUG: the baud is not ok\r\n"), 0);
 		#endif
-			  //SendATCmdWaitResp("AT+IPR=9600", 500, 50, "OK", 5);
-			  for (int i=1;i<7;i++){
-					switch (i) {
-					case 1:
-					  mySerial.begin(4800);
-						#ifdef DEBUG_PRINT
-							DebugPrint(F("DEBUG: provo Baud 4800\r\n"), 0);
-						#endif
-					  break;
-					case 2:
-					  mySerial.begin(9600);
-					  #ifdef DEBUG_PRINT
-							DebugPrint(F("DEBUG: provo Baud 9600\r\n"), 0);
-						#endif
-					  break;
-					case 3:
-					  mySerial.begin(19200);
-					  #ifdef DEBUG_PRINT
-							DebugPrint(F("DEBUG: provo Baud 19200\r\n"), 0);
-						#endif
-					  break;
-					case 4:
-					  mySerial.begin(38400);
-					  #ifdef DEBUG_PRINT
-							DebugPrint(F("DEBUG: provo Baud 38400\r\n"), 0);
-						#endif
-					  break;
-					case 5:
-					  mySerial.begin(57600);
-					  #ifdef DEBUG_PRINT
-							DebugPrint(F("DEBUG: provo Baud 57600\r\n"), 0);
-						#endif
-					  break;
-					case 6:
-					  mySerial.begin(115200);
-					  #ifdef DEBUG_PRINT
-							DebugPrint(F("DEBUG: provo Baud 115200\r\n"), 0);
-						#endif
-					  break;
-					  // if nothing else matches, do the default
-					  // default is optional
-					}
-					
-					/*
-					  p_char = strchr((char *)(comm_buf),',');
-					  p_char1 = p_char+2; // we are on the first phone number character
-					  p_char = strchr((char *)(p_char1),'"');
-					  if (p_char != NULL) {
-						*p_char = 0; // end of string
-						strcpy(phone_number, (char *)(p_char1));
-					  }
-					*/  
-	  
-	  
-				  delay(100);
-				  /*sprintf (buff,"AT+IPR=%f",baud_rate);
-					#ifdef DEBUG_PRINT
-						// parameter 0 - because module is off so it is not necessary 
-						// to send finish AT<CR> here
-						DebugPrint(F("DEBUG: Stringa "), 0);
-						DebugPrint(buff, 0);
-					#endif
-					*/
 
-				  delay(500);
-				  mySerial.print("AT+IPR=");
-				  mySerial.print(baud_rate, 10);
-				  mySerial.write('\r'); // send <CR>
-				  delay(1000);
-				  mySerial.begin(baud_rate);
-				  delay(500);
-				  if (AT_RESP_OK == SendATCmdWaitResp(500, 100, "OK", 5, PSTR("AT"))){
-						#ifdef DEBUG_PRINT
-							// parameter 0 - because module is off so it is not necessary 
-							// to send finish AT<CR> here
-							DebugPrint(F("DEBUG: ricevuto ok da modulo, baud impostato: "), 0);
-							DebugPrint(baud_rate, 0);	
-						#endif
-						break;					
-				  }
+		//SendATCmdWaitResp("AT+IPR=9600", 500, 50, "OK", 5);
+		for (int i = 1; i < 7; i++) {
+			switch (i) {
+			case 1:
+				mySerial.begin(4800);
+				#ifdef DEBUG_PRINT
+				DebugPrint(F("DEBUG: provo Baud 4800\r\n"), 0);
+				#endif
+				break;
+			case 2:
+				mySerial.begin(9600);
+				#ifdef DEBUG_PRINT
+				DebugPrint(F("DEBUG: provo Baud 9600\r\n"), 0);
+				#endif
+				break;
+			case 3:
+				mySerial.begin(19200);
+				#ifdef DEBUG_PRINT
+				DebugPrint(F("DEBUG: provo Baud 19200\r\n"), 0);
+				#endif
+				break;
+			case 4:
+				mySerial.begin(38400);
+				#ifdef DEBUG_PRINT
+				DebugPrint(F("DEBUG: provo Baud 38400\r\n"), 0);
+				#endif
+				break;
+			case 5:
+				mySerial.begin(57600);
+				#ifdef DEBUG_PRINT
+				DebugPrint(F("DEBUG: provo Baud 57600\r\n"), 0);
+				#endif
+				break;
+			case 6:
+				mySerial.begin(115200);
+				#ifdef DEBUG_PRINT
+				DebugPrint(F("DEBUG: provo Baud 115200\r\n"), 0);
+				#endif
+				break;
+				// if nothing else matches, do the default
+				// default is optional
+			}
+
+			delay(100);
+			delay(500);
+			mySerial.print("AT+IPR=");
+			mySerial.print(baud_rate, 10);
+			mySerial.write('\r'); // send <CR>
+			delay(1000);
+			mySerial.begin(baud_rate);
+			delay(500);
+			if (AT_RESP_OK == SendATCmdWaitResp(500, 100, "OK", 5, PSTR("AT"))) {
+				#ifdef DEBUG_PRINT
+				// parameter 0 - because module is off so it is not necessary
+				// to send finish AT<CR> here
+				DebugPrint(F("DEBUG: ricevuto ok da modulo, baud impostato: "), 0);
+				DebugPrint(baud_rate, 0);
+				#endif
+				break;
+			}
 				  
-			  }
+		}
 			  
-			  // communication line is not used yet = free
-			  //SetCommLineStatus(CLS_FREE);
-			  // pointer is initialized to the first item of comm. buffer
-			  p_comm_buf = &comm_buf[0];
+		// communication line is not used yet = free
+		//SetCommLineStatus(CLS_FREE);
+		// pointer is initialized to the first item of comm. buffer
+		p_comm_buf = &comm_buf[0];
   
   
 		if (AT_RESP_ERR_NO_RESP == SendATCmdWaitResp(500, 100, "OK", 5, PSTR("AT"))) {
 			#ifdef DEBUG_PRINT
-				// parameter 0 - because module is off so it is not necessary 
-				// to send finish AT<CR> here
-				DebugPrint(F("DEBUG: No answer from the module\r\n"), 0);
+			// parameter 0 - because module is off so it is not necessary
+			// to send finish AT<CR> here
+			DebugPrint(F("DEBUG: No answer from the module\r\n"), 0);
 			#endif
 		}
 		else{
-	
 			#ifdef DEBUG_PRINT
-				// parameter 0 - because module is off so it is not necessary 
-				// to send finish AT<CR> here
-				DebugPrint(F("DEBUG: 1 baud ok\r\n"), 0);
+			// parameter 0 - because module is off so it is not necessary
+			// to send finish AT<CR> here
+			DebugPrint(F("DEBUG: 1 baud ok\r\n"), 0);
 			#endif
 		}
 
@@ -706,11 +685,10 @@ void GSM::TurnOn(long baud_rate)
 	else
 	{
 		#ifdef DEBUG_PRINT
-			DebugPrint(F("DEBUG: 2 GSM module is on and baud is ok\r\n"), 0);
+		DebugPrint(F("DEBUG: 2 GSM module is on and baud is ok\r\n"), 0);
 		#endif
   
 	}
-  //SetCommLineStatus(CLS_FREE);
 
   // send collection of first initialization parameters for the GSM module    
   InitParam(PARAM_SET_0);

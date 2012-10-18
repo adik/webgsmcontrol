@@ -172,10 +172,7 @@ void GPRS::fetchState() {
 	    else {
 	    	setState(PDP_DEACT);
 	    }
-	} else {
-
 	}
-
 }
 
 
@@ -209,12 +206,14 @@ void GPRS::TCP_Connect(const char *str) {
 	}
 }
 
+/**********************************************************
+ Start Up TCP Connection
+**********************************************************/
 void GPRS::TCP_Connect(__FlashStringHelper *prog_str) {
 	char buf[32];
 	strcpy_P(buf, (const prog_char *)prog_str);
 	TCP_Connect(buf);
 }
-
 
 /**********************************************************
  Send data
@@ -266,6 +265,11 @@ void GPRS::GPRS_attach() {
 	byte status;
     byte no_of_attempts = 0;
 
+	/*
+	 * Reject Incoming Call
+	 */
+	SendATCmdWaitResp(1000, 50, "OK", 3, PSTR("AT+GSMBUSY=1"));
+
 	if (AT_RESP_OK == SendATCmdWaitResp(1000, 150, "OK", 3, PSTR("AT+CGATT=1"))) {
 
 		/*
@@ -293,15 +297,15 @@ void GPRS::GPRS_attach() {
 		do {
 			if (++no_of_attempts > 4) {
 				setState(IP_BUSY);
-				goto finish;
+				return;
 			}
 			vprintf_P(mySerial, PSTR("AT+CIFSR")); mySerial.write('\r');
 			status = WaitResp(1000, 150);
 			delay(500);
+
 		} while ((status != RX_FINISHED) || IsStringReceived("ERROR"));
 
 		setState(IP_STATUS);
-
 
 		// Add an IP Head at the Beginning of a Package Received
 		//      (0)	not add IP header
@@ -327,15 +331,11 @@ void GPRS::GPRS_attach() {
 		 */
 		SendATCmdWaitResp(1000, 150, "OK", 1, PSTR("AT+CIPQSEND=0"));
 
-
 		/*
 		 * prompt '>' char when received AT+CIPSEND command
 		 */
 		SendATCmdWaitResp(1000, 100, "", 1, PSTR("AT+CIPSPRT=1"));
 	}
-
-finish:
-	return;
 }
 
 
@@ -353,6 +353,3 @@ void GPRS::GPRS_detach() {
 	SendATCmdWaitResp(1000, 150, "OK", 3, PSTR("AT+CIPSHUT"));
 	setState(IP_INITIAL);
 }
-
-
-
