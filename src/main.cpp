@@ -18,6 +18,59 @@
 #include "sha256.h"
 
 
+// +5v       +data (14)
+// clock(11)
+// latch(12)
+
+//  4 нога Q4
+// 15 нога Q0
+
+/*
+	14 - gnd
+
+	Pin2Key:
+
+	1+10 = 10
+	3+10 = 9
+	5+10 = 8
+	7+10 = 7
+	9+10 = 6
+	1+ 8 = 5
+	3+ 8 = 4
+	5+ 8 = 3
+	7+ 8 = 2
+	9+ 8 = 1
+
+    KeyPad:
+    1      -      2
+    3      -      4
+    5      -      6
+    7      -      8
+    9      -     10
+
+
+
+        74x4051 | 74x595
+
+				  mask 0x11110000
+   9    Y4        0x100
+   7    Y6        0x110
+   5    Y5        0x101
+   3    Y7        0x111
+   1    Y3        0x011
+   E    -         Q4
+
+                  mask 0x00001111
+   10   Y6        0x110
+   8    Y7        0x111
+   E    -         Q0
+
+
+      0x10001110 = 9 + 8
+*/
+
+
+
 
 //for enable disable debug rem or not the string #define DEBUG_PRINT
 // definition of instance of GSM class
