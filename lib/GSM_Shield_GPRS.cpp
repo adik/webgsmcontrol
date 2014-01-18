@@ -24,6 +24,8 @@ GPRS::GPRS(void) : GSM(), gprs_state(PDP_DEACT) { }
 **********************************************************/
 void GPRS::handleCommunication()
 {
+	_onTransferHandler();
+
 	while (RX_packet()) { // Receive data
 		while (gprs_rx.head < gprs_rx.tail) {
 			_onReceiveHandler(*gprs_rx.head++);
@@ -64,7 +66,7 @@ byte GPRS::RX_packet() {
 		// FIXIT:
 		// break if timeout
 		if (millis() - prev_time > GPRS_DATA_RECEIVE_TIMEOUT ) {
-			//Serial.println("Timeout");
+			GPRS_detach(); // Timeout
 			return 0;
 		}
 
@@ -209,16 +211,16 @@ void GPRS::TCP_Connect(const char *str) {
 /**********************************************************
  Start Up TCP Connection
 **********************************************************/
-void GPRS::TCP_Connect(__FlashStringHelper *prog_str) {
+void GPRS::TCP_Connect(const __FlashStringHelper *prog_str) {
 	char buf[32];
-	strcpy_P(buf, (const prog_char *)prog_str);
+	strcpy_P(buf, (const char PROGMEM *)prog_str);
 	TCP_Connect(buf);
 }
 
 /**********************************************************
  Send data
 **********************************************************/
-void GPRS::TCP_Send(const prog_char *data, ... ) {
+void GPRS::TCP_Send(const char PROGMEM *data, ... ) {
 
 	va_list   		args;
 	byte	  		state;

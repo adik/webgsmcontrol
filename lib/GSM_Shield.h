@@ -167,6 +167,8 @@ class GSM
 
 
     // turns on GSM module
+    void PowerOn();
+    void Reset();
     void TurnOn(long baud_rate);
     // sends some initialization parameters
     void InitParam (byte group);
@@ -228,11 +230,11 @@ class GSM
 
 
     //
-    void WaitUntil_P(Stream &stream, const prog_char *target);
+    void WaitUntil_P(Stream &stream, const char PROGMEM *target);
 
-    void send(const prog_char *fmt, ...);
-	void vprintf_P(Stream &stream, const prog_char *fmt, ...);
-	void vprintf_P(Stream &stream, const prog_char *fmt, va_list args );
+    void send(const char PROGMEM *fmt, ...);
+	void vprintf_P(Stream &stream, const char PROGMEM *fmt, ...);
+	void vprintf_P(Stream &stream, const char PROGMEM *fmt, va_list args );
 
 
     // routines regarding communication with the GSM module
@@ -248,7 +250,7 @@ class GSM
                byte no_of_attempts);
     char SendATCmdWaitResp(uint16_t start_comm_tmout,
     			uint16_t max_interchar_tmout, char const *response_string,
-    			byte no_of_attempts, const prog_char *fmt, ...);
+    			byte no_of_attempts, const char PROGMEM *fmt, ...);
 
 	// new routine  TDGINO by Boris
 	
@@ -263,7 +265,7 @@ class GSM
 
 #ifdef DEBUG_PRINT
     void DebugPrint(const char *string_to_print, byte last_debug_print);
-    void DebugPrint(__FlashStringHelper *string_to_print, byte last_debug_print);
+    void DebugPrint(const __FlashStringHelper *string_to_print, byte last_debug_print);
     void DebugPrint(int number_to_print, byte last_debug_print);
 #endif
 

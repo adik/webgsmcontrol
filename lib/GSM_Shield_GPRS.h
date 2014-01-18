@@ -8,7 +8,7 @@
 #define __GSM_Shield_GPRS
 #include <GSM_Shield.h>
 
-#define GPRS_DATA_RECEIVE_TIMEOUT  1000
+#define GPRS_DATA_RECEIVE_TIMEOUT  60000
 #define GPRS_DATA_BUFFER_SIZE 256
 
 struct gprs_ring_buffer {
@@ -35,14 +35,17 @@ enum gprs_state_enum {
 class GPRS : public GSM
 {
 private:
-	typedef 		void (*EventHandler)(const byte) ;
+	typedef 		void (*EventHandlerRx)(const byte) ;
+	typedef 		void (*EventHandlerTx)() ;
 	byte 			gprs_state;
-	EventHandler 	_onReceiveHandler;
+	EventHandlerRx 	_onReceiveHandler;
+	EventHandlerTx 	_onTransferHandler;
 
 public:
 	GPRS(void);
 
-	void setRecvHandler( EventHandler handler ) {  _onReceiveHandler = handler; };
+	void setRxHandler( EventHandlerRx handler ) {  _onReceiveHandler = handler; };
+	void setTxHandler( EventHandlerTx handler ) {  _onTransferHandler = handler; };
 
 	void handleCommunication();
 
@@ -53,9 +56,9 @@ public:
 	void GPRS_Context2Nvram();
 
 	void TCP_Connect(const char *);
-	void TCP_Connect(__FlashStringHelper *);
+	void TCP_Connect(const __FlashStringHelper *);
 
-	void TCP_Send(const prog_char *data, ...);
+	void TCP_Send(const char PROGMEM *data, ...);
 	void TCP_Close();
 
 	void GPRS_attach();

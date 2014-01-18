@@ -76,7 +76,7 @@ void GSM::DebugPrint(const char *string_to_print, byte last_debug_print)
   }
   else Serial.print(string_to_print);
 }
-void GSM::DebugPrint(__FlashStringHelper *string_to_print, byte last_debug_print)
+void GSM::DebugPrint(const __FlashStringHelper *string_to_print, byte last_debug_print)
 {
   if (last_debug_print) {
     Serial.print(string_to_print);
@@ -355,7 +355,7 @@ byte GSM::WaitResp(uint16_t start_comm_tmout, uint16_t max_interchar_tmout,
 /**********************************************************
 
 **********************************************************/
-void GSM::vprintf_P(Stream &stream, const prog_char *fmt, ...) {
+void GSM::vprintf_P(Stream &stream, const char PROGMEM *fmt, ...) {
 	va_list   args;
 	va_start(args, fmt);
 	vprintf_P(stream, fmt, args);
@@ -365,7 +365,7 @@ void GSM::vprintf_P(Stream &stream, const prog_char *fmt, ...) {
 /**********************************************************
 
 **********************************************************/
-void GSM::send(const prog_char *fmt, ...) {
+void GSM::send(const char PROGMEM *fmt, ...) {
 	va_list   args;
 	va_start(args, fmt);
 	vprintf_P(mySerial, fmt, args);
@@ -375,7 +375,7 @@ void GSM::send(const prog_char *fmt, ...) {
 /**********************************************************
 
 **********************************************************/
-void GSM::vprintf_P(Stream &stream, const prog_char *fmt, va_list args ) {
+void GSM::vprintf_P(Stream &stream, const char PROGMEM *fmt, va_list args ) {
 	char 		*p, c, c2, zero;
 	uint8_t 	i8;
 
@@ -401,7 +401,7 @@ void GSM::vprintf_P(Stream &stream, const prog_char *fmt, va_list args ) {
 				}
 				break;
 			case 'p':
-				p = va_arg(args, prog_char *);
+				p = va_arg(args, char PROGMEM *);
 				// write to
 				if (p != NULL) {
 					for (;;) {
@@ -433,9 +433,9 @@ void GSM::vprintf_P(Stream &stream, const prog_char *fmt, va_list args ) {
 /**********************************************************
  *
  **********************************************************/
-void GSM::WaitUntil_P(Stream &stream, const prog_char *target) {
+void GSM::WaitUntil_P(Stream &stream, const char PROGMEM *target) {
 
-	const prog_char 	*p;
+	const char PROGMEM 	*p;
 	int 				c, d;
 	unsigned long 		prev_time;
 
@@ -483,7 +483,7 @@ return:
 **********************************************************/
 char GSM::SendATCmdWaitResp(uint16_t start_comm_tmout,
 		uint16_t max_interchar_tmout, char const *response_string,
-		byte no_of_attempts, const prog_char *fmt, ...)
+		byte no_of_attempts, const char PROGMEM *fmt, ...)
 {
 	va_list args;
 	byte	status;
@@ -542,10 +542,31 @@ byte GSM::IsInitialized(void)
 }
 
 /**********************************************************
-  Checks if the GSM module is responding 
+ * // generate turn on pulse
+**********************************************************/
+void GSM::PowerOn()
+{
+
+	digitalWrite(GSM_ON, HIGH);
+	delay(500);
+	digitalWrite(GSM_ON, LOW);
+}
+
+/**********************************************************
+ * // generate reset pulse
+**********************************************************/
+void GSM::Reset()
+{
+	digitalWrite(GSM_RESET, HIGH);
+	delay(500);
+	digitalWrite(GSM_RESET, LOW);
+}
+
+/**********************************************************
+  Checks if the GSM module is responding
   to the AT command
-  - if YES nothing is made 
-  - if NO GSM module is turned on 
+  - if YES nothing is made
+  - if NO GSM module is turned on
 **********************************************************/
 void GSM::TurnOn(long baud_rate)
 {
@@ -561,14 +582,6 @@ void GSM::TurnOn(long baud_rate)
 
     // init
 	for (;;) {
-
-		// generate turn on pulse
-		delay(2000);
-		digitalWrite(GSM_ON, HIGH);
-		delay(1200);
-		digitalWrite(GSM_ON, LOW);
-		delay(5000);
-
 		//check power there is no response
 		if (AT_RESP_ERR_NO_RESP	== SendATCmdWaitResp(500, 100, "OK", 5, PSTR("AT"))) {
 			#ifdef DEBUG_PRINT

@@ -51,7 +51,7 @@ typedef uint8_t byte;
 
 // a lenght of data buffer
 #ifndef JSON_MAX_DATA_BUFFER
-#define JSON_MAX_DATA_BUFFER 128
+#define JSON_MAX_DATA_BUFFER 256
 #endif
 
 // max available tokens

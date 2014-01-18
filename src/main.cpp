@@ -30,16 +30,16 @@
 
 	Pin2Key:
 
-	1+10 = 10
-	3+10 = 9
-	5+10 = 8
-	7+10 = 7
-	9+10 = 6
-	1+ 8 = 5
-	3+ 8 = 4
-	5+ 8 = 3
-	7+ 8 = 2
-	9+ 8 = 1
+	1+10 = 10  0x01101100 6c
+	3+10 = 9   0x11101100 ec
+	5+10 = 8   0x10101100 ac
+	7+10 = 7   0x11001100 cc
+	9+10 = 6   0x10001100 8c
+	1+ 8 = 5   0x01101110 6e
+	3+ 8 = 4   0x11101110 ee
+	5+ 8 = 3   0x10101110 ae
+	7+ 8 = 2   0x11001110 ce
+	9+ 8 = 1   0x10001110 8e
 
     KeyPad:
     1      -      2
@@ -66,7 +66,16 @@
    E    -         Q0
 
 
-      0x10001110 = 9 + 8
+      0x10001110 = 9 + 8 (8e)
+
+      ! 0x01110001 = 71
+      0x00010111
+
+
+Send :
+  channel: private-cmd
+  event: client-key_press
+  data: 11
 */
 
 
@@ -80,7 +89,7 @@ GPRS gsm;
 static json_parser_t json_parser = {};
 
 //
-const prog_char HTTP_connectWS[] PROGMEM = {
+const char PROGMEM HTTP_connectWS[] PROGMEM = {
 			"GET /app/%p?client=js&version=1.12&protocol=5 HTTP/1.1\r\n"
 			"Upgrade: WebSocket\r\n"
 			"Connection: Upgrade\r\n"
@@ -89,8 +98,8 @@ const prog_char HTTP_connectWS[] PROGMEM = {
 			"\r\n" };
 
 
-static const prog_char Pusher_Key[] PROGMEM   = {"8185ce71534c69c42b72"};
-static const uint8_t   Pusher_Secret[]        = {"c30a8df113dd52dc64e4"};
+static const char PROGMEM Pusher_Key[] PROGMEM  = {"8185ce71534c69c42b72"};
+static const uint8_t Pusher_Secret[]            = {"c30a8df113dd52dc64e4"};
 
 
 /**********************************************************
@@ -100,6 +109,7 @@ static const uint8_t   Pusher_Secret[]        = {"c30a8df113dd52dc64e4"};
 
 #define Keyboard_Delay_KeyRelease 200
 
+#define Keyboard_Pin_5V       4
 #define Keyboard_Pin_DATA     5
 #define Keyboard_Pin_LATCH    6
 #define Keyboard_Pin_CLK      7
@@ -157,6 +167,7 @@ void Keyboard_Latch_Stamp() {
 	for (i = 0; i < 8; i++)  {
 		digitalWrite(Keyboard_Pin_CLK, LOW);
 		digitalWrite(Keyboard_Pin_DATA, !!(keyboard_latch_state & (1 << (7 - i))));
+		delayMicroseconds(100);
 		digitalWrite(Keyboard_Pin_CLK, HIGH);
 	}
 
@@ -199,20 +210,32 @@ inline void WebSocket_Generate_AuthToken(char *str) {
  Receive GPRS data handler
 **********************************************************/
 // declare state
-enum recv_state_enum {
+enum ws_recv_state_enum {
 	HTTP_HEADER_COMPLITED = 0,
 	HTTP_HEADER = 1,
 	HTTP_HEADER_END = 2,
 };
 
-static byte recv_state;
+// declare state
+enum ws_status {
+	WS_INIT = 0,
+	WS_CONNECTED = 1,
+	WS_SUBSCRIBED = 2,
+};
+
+
+static byte ws_recv_state, ws_status;
+
 /* Some functions definition */
 static inline void WebSocket_Process_JSON();
-static inline byte WebSocket_Recv_GetState() { return recv_state; }
-static inline void WebSocket_Recv_SetState(byte state) { recv_state = state; }
+static inline byte WebSocket_Recv_GetState() { return ws_recv_state; }
+static inline void WebSocket_Recv_SetState(byte s) { ws_recv_state = s; }
+
+static inline byte WebSocket_GetStatus() { return ws_status; }
+static inline void WebSocket_SetStatus(byte s) { ws_status = s; }
+
 
 /**********************************************************
-
 **********************************************************/
 void EVENT_WebSocket_RecvByte(byte chr) {
 
@@ -238,7 +261,31 @@ void EVENT_WebSocket_RecvByte(byte chr) {
 }
 
 /**********************************************************
+**********************************************************/
+static unsigned long last_heartbeat_time;
+static unsigned long last_ping_time=0, last_pong_time=0;
 
+void EVENT_WebSocket_Send() {
+
+	if ( WS_SUBSCRIBED == WebSocket_GetStatus() )
+		if ((unsigned long)(millis() - last_heartbeat_time) >= 30000) {
+			gsm.TCP_Send(
+				PSTR("%d{\"event\":\"client-heartbeat\",\"data\":\"Arduino\",\"channel\":\"private-cmd\"}%d"),
+				0, 255 );
+			last_heartbeat_time = millis();
+		}
+
+
+	if ( WS_INIT != WebSocket_GetStatus() )
+		if ((unsigned long)(millis() - last_ping_time) >= 120000) {
+			gsm.TCP_Send(
+				PSTR("%d{\"event\":\"pusher:ping\",\"data\":\"\"}%d"),
+				0, 255 );
+			last_ping_time = millis();
+		}
+}
+
+/**********************************************************
 **********************************************************/
 inline void WebSocket_Process_JSON() {
 	//
@@ -248,13 +295,18 @@ inline void WebSocket_Process_JSON() {
 	event_name = json_get_tag_value(&json_parser, "event");
 
 	if (event_name) {
+#ifdef DEBUG_PRINT
+		gsm.DebugPrint(F("event: "), 0);
+		gsm.DebugPrint(event_name, 0);
+#endif
+
 	/* -------------------
 	 * pusher namespace
 	 * -------------------*/
 		if (strstr(event_name, "pusher")) {
 
 			// connection handshake
-			if (strstr(event_name, "connection_established")) {
+			if (strstr(event_name, "tion_est")) { // pusher:connection_established
 				if ((event_data = json_get_tag_value(&json_parser, "data"))) {
 					char tmp[24];
 					char channel[]=":private-cmd";
@@ -277,12 +329,21 @@ inline void WebSocket_Process_JSON() {
 					free(event_data);
 				}
 			}
+
+			// subscribed
+			else if (strstr(event_name, "tion_suc")) { // pusher_internal:subscription_succeeded
+				WebSocket_SetStatus(WS_SUBSCRIBED);
+			}
+
 			// ping-ping
 			else if (strstr(event_name, "ping")) {
 					gsm.TCP_Send(
 						PSTR("%d{\"event\":\"pusher:pong\",\"data\":\"pong\"}%d"),
 						0,
 						255 );
+			}
+			else if (strstr(event_name, "pong")) {
+				last_pong_time = millis();
 			}
 
 	/* -------------------
@@ -319,8 +380,11 @@ inline void WebSocket_Process_JSON() {
 				free(event_data);
 			}
 
+		} else if (strstr(event_name, "ping")) {
+			gsm.TCP_Send(
+				PSTR("%d{\"event\":\"client-pong\",\"data\":\"\",\"channel\":\"private-cmd\"}%d"),
+				0, 255 );
 		}
-
 	}
 
 	// clean garbage
@@ -349,6 +413,8 @@ void WebSocket_Connect() {
 				Pusher_Key,
 				PSTR("ws.pusherapp.com")
 		);
+
+		WebSocket_SetStatus(WS_CONNECTED);
 	}
 }
 
@@ -358,15 +424,21 @@ void WebSocket_Connect() {
 **********************************************************/
 inline void setup() {
 #ifdef DEBUG_PRINT
-	Serial.begin(38400);
+	Serial.begin(9600);
 #endif
-	gsm.TurnOn(38400); //module power on
-	gsm.InitParam(PARAM_SET_0); //configure the module
-	gsm.setRecvHandler(EVENT_WebSocket_RecvByte);
+	gsm.Reset();
+	gsm.PowerOn();
+	//gsm.TurnOn(9600);
+	gsm.setRxHandler(EVENT_WebSocket_RecvByte);
+	gsm.setTxHandler(EVENT_WebSocket_Send);
+
 
 	pinMode(Keyboard_Pin_DATA, OUTPUT);
 	pinMode(Keyboard_Pin_LATCH, OUTPUT);
 	pinMode(Keyboard_Pin_CLK, OUTPUT);
+
+	pinMode(Keyboard_Pin_5V, OUTPUT);
+	digitalWrite(Keyboard_Pin_5V, HIGH);
 
 	// json
 	json_init(&json_parser);
@@ -390,16 +462,15 @@ inline void loop() {
 	if (CONNECT_OK == state) {
 		gsm.handleCommunication();
 
-	} else if (TCP_CLOSED == state) {
-		// TODO: reconnect timeout
-		WebSocket_Connect();
-
 	} else if (TCP_CONNECTING == state) {
 		// nothing
 
 	} else {
+		gsm.Reset();
+		gsm.TurnOn(9600);
 		gsm.GPRS_detach();
 		gsm.GPRS_attach();
+		WebSocket_SetStatus(WS_INIT);
 		WebSocket_Connect();
 	}
 }

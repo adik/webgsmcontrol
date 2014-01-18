@@ -5,7 +5,7 @@
 #ifndef Main_H_
 #define Main_H_
 
-	#define JSON_MAX_DATA_BUFFER 128
+	#define JSON_MAX_DATA_BUFFER 256
 	#include "SimpleJsonParser.h"
 
 
